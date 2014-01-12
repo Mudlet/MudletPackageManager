@@ -1,0 +1,2289 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.0">
+    <TriggerPackage/>
+    <TimerPackage/>
+    <AliasPackage>
+        <AliasGroup isActive="yes" isFolder="yes">
+            <name>mkpg</name>
+            <script></script>
+            <command></command>
+            <packageName></packageName>
+            <regex></regex>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg help</name>
+                <script>cecho(&quot;&lt;green&gt;Help of the Mudlet Package Manager.\n&quot;)
+cecho(&quot;&lt;green&gt;The following commands are available:\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg help&lt;reset&gt;\n&quot;)
+cecho(&quot;    Displays this help text.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg repo add \&lt;name\&gt; \&lt;URL\&gt; \&lt;Description\&gt;&lt;reset&gt;\n&quot;)
+cecho(&quot;    Adds a new repository with name, URL annd description to the database of known repositories.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg repo list&lt;reset&gt;\n&quot;)
+cecho(&quot;    Lists all known repositories.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg repo info \&lt;pattern\&gt;&lt;reset&gt;\n&quot;)
+cecho(&quot;    Show the URL and description of the repositories matching the pattern.\n&quot;)
+cecho(&quot;    The pattern may contain '_' as single character wildcard and '%' for multiple characters.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg repo remove \&lt;pattern\&gt;&lt;reset&gt;\n&quot;)
+cecho(&quot;    Removes the matching repositories from the database.\n&quot;)
+cecho(&quot;    The pattern may contain '_' as single character wildcard and '%' for multiple characters.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg update&lt;reset&gt;\n&quot;)
+cecho(&quot;    Updates the list of available packages on all repositories.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg package list&lt;reset&gt;\n&quot;)
+cecho(&quot;    Lists all known packages.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg package info \&lt;pattern\&gt;&lt;reset&gt;\n&quot;)
+cecho(&quot;    Show the URL, version, repository name and description of the packages matching the pattern.\n&quot;)
+cecho(&quot;    The pattern may contain '_' as single character wildcard and '%' for multiple characters.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg install \&lt;name\&gt;&lt;reset&gt;\n&quot;)
+cecho(&quot;    Install the package. It might be necessary to specify a repository, if the package is in multiple.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg uninstall \&lt;name\&gt;&lt;reset&gt;\n&quot;)
+cecho(&quot;    Uninstall the package.\n&quot;)
+cecho(&quot;  &lt;orange&gt;mpkg upgrade&lt;reset&gt;\n&quot;)
+cecho(&quot;    Download and install the latest version of all installed packages.\n&quot;)
+</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg help$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg repo add</name>
+                <script>local  newRepo = {
+	name = matches[2],
+	url = matches[3], 
+	description = matches[4]
+}
+local res, error = db:add(mpkg.database.repositories, newRepo)
+
+if res then
+	cecho(&quot;&lt;green&gt;Added new repository to database:\n&quot;)
+	cecho(&quot;  &lt;orange&gt;name&lt;reset&gt;: &quot; .. newRepo.name .. &quot;\n&quot;)
+	cecho(&quot;  &lt;orange&gt;URL&lt;reset&gt;: &quot; .. newRepo.url .. &quot;\n&quot;)
+	cecho(&quot;  &lt;orange&gt;Description&lt;reset&gt;: &quot; .. newRepo.description .. &quot;\n&quot;)
+else
+	cecho(&quot;&lt;red&gt;Couldn't add repository to database. Reason:\n&quot;)
+	cecho(error)
+end
+</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg repo add (.+?) (.+?) (.*)$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg repo list</name>
+                <script>local repoList = db:fetch(mpkg.database.repositories)
+cecho(&quot;&lt;green&gt;List of all known repositories:\n&quot;)
+for _, repo in ipairs(repoList) do
+	cecho(string.format(&quot;  &lt;orange&gt;%s&lt;reset&gt; (%s)\n&quot;, repo.name, repo.url))
+end</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg repo list$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg repo info</name>
+                <script>local foundRepositories = db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, { name = matches[2] } ))
+if #foundRepositories &gt; 0 then
+	for _, repo in ipairs(foundRepositories) do
+		cecho(&quot;&lt;green&gt;&quot; .. repo.name .. &quot;:\n&quot;)
+		cecho(&quot;  &lt;orange&gt;URL&lt;reset&gt;: &quot; .. repo.url .. &quot;\n&quot;)
+		cecho(&quot;  &lt;orange&gt;Description&lt;reset&gt;: &quot; .. repo.description .. &quot;\n&quot;)
+	end
+else
+	cecho(&quot;&lt;green&gt;No repositories matching the pattern '&quot; .. matches[2] .. &quot;' found.&quot;)
+end</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg repo info (.+)$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg repo remove</name>
+                <script>local foundRepositories = db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, { name = matches[2] } ))
+if #foundRepositories &gt; 0 then
+	for _, repo in ipairs(foundRepositories) do
+		cecho(&quot;&lt;green&gt;Removing repository &lt;orange&gt;&quot; .. repo.name .. &quot;.\n&quot;)
+		db:delete(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, { name = repo.name } ))
+	end
+else
+	cecho(&quot;&lt;green&gt;No repositories matching the pattern '&quot; .. matches[2] .. &quot;' found.&quot;)
+end</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg repo remove (.+)$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg update</name>
+                <script>if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg&quot;) then
+	local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg&quot;)
+	assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))	
+end
+if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg/cache&quot;) then
+	local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg/cache&quot;)
+	assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))
+end
+local repositories = db:fetch(mpkg.database.repositories)
+if not mpkg.transaction.type then
+	cecho(&quot;&lt;green&gt;Updating the list of available packages.\n&quot;)
+	mpkg.transaction.type = &quot;update&quot;
+	mpkg.transaction.argument = #repositories
+else
+	cecho(&quot;&lt;red&gt;There is currently an &quot; .. mpkg.transaction.type .. &quot; in progress. Please wait for it to finish and try again.\n&quot;)
+	return
+end
+for _, repository in ipairs(repositories) do
+	downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. repository.name, repository.url)
+end</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg update$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg package list</name>
+                <script>local packageList = db:fetch(mpkg.database.packages)
+cecho(&quot;&lt;green&gt;List of all known packages:\n&quot;)
+for _, package in ipairs(packageList) do
+	cecho(string.format(&quot;  &lt;orange&gt;%s (%s) &lt;reset&gt;from %s %s\n&quot;, package.name, package.version, package.repository, package.installed ~= &quot;&quot; and &quot;&lt;green&gt;installed&quot; or &quot;&quot;))
+end</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg package list$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg package info</name>
+                <script>local foundPackages = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2] } ))
+if #foundPackages &gt; 0 then
+	for _, pkg in ipairs(foundPackages) do
+		cecho(&quot;&lt;green&gt;&quot; .. pkg.name .. &quot;:\n&quot;)
+		cecho(&quot;  &lt;orange&gt;Repository&lt;reset&gt;: &quot; .. pkg.repository .. &quot;\n&quot;)
+		cecho(&quot;  &lt;orange&gt;Version&lt;reset&gt;: &quot; .. pkg.version .. &quot;\n&quot;)
+		cecho(&quot;  &lt;orange&gt;Installed Version&lt;reset&gt;: &quot; .. (pkg.installed ~= &quot;&quot; and pkg.installed or &quot;none&quot;) .. &quot;\n&quot;)
+		cecho(&quot;  &lt;orange&gt;Description&lt;reset&gt;: &quot; .. pkg.description .. &quot;\n&quot;)
+	end
+else
+	cecho(&quot;&lt;green&gt;No repositories matching the pattern '&quot; .. matches[2] .. &quot;' found.&quot;)
+end</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg package info (.+)$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg install</name>
+                <script>local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2] } ))
+
+if #package &gt; 1 then
+	cecho(&quot;&lt;orange&gt;More than one package found with name &quot; .. matches[2] .. &quot;. Please be more specific, which package you want to install.\n&quot;)
+	return
+end
+
+if package[1].installed ~= &quot;&quot; then
+
+	if package[1].version == package[1].installed then
+		cecho(&quot;&lt;green&gt;Package &quot; .. matches[2] .. &quot; already installed at the latest version.\n&quot;)
+		return
+	else
+		cecho(&quot;&lt;orange&gt;Package &quot; .. matches[2] .. &quot; already installed. You may want to upgrade instead.\n&quot;)
+		return
+	end
+
+end
+
+if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg&quot;) then
+	local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg&quot;)
+	assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))	
+end
+if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg/cache&quot;) then
+	local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg/cache&quot;)
+	assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))
+end
+
+if not mpkg.transaction.type then
+	cecho(&quot;&lt;green&gt;Installing package &quot; .. matches[2] .. &quot;.\n&quot;)
+	mpkg.transaction.type = &quot;install&quot;
+	mpkg.transaction.argument = { package[1].name }
+else
+	cecho(&quot;&lt;red&gt;There is currently an &quot; .. mpkg.transaction.type .. &quot; in progress. Please wait for it to finish and try again.\n&quot;)
+	return
+end
+downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. package[1].name, package[1].url)</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg install ([^\s]+?)$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg uninstall</name>
+                <script>local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2], repository = matches[3] } ))
+
+if #package &gt; 1 then
+	cecho(&quot;&lt;orange&gt;More than one package found with name &quot; .. matches[2] .. &quot;. Please be more specific, which package you want to uninstall.\n&quot;)
+	return
+end
+
+if package[1].installed == &quot;&quot; then
+
+	cecho(&quot;&lt;orange&gt;Package &quot; .. matches[2] .. &quot; not installed.\n&quot;)
+	return
+
+
+end
+
+uninstallPackage(package[1].name)
+
+package[1].installed = &quot;&quot;
+db:update(mpkg.database.packages, package[1])
+cecho(&quot;&lt;green&gt;Finished uninstalling package &quot; .. matches[2] .. &quot;.\n&quot;)</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg uninstall ([^\s]+?)(?: (.+)|)$</regex>
+            </Alias>
+            <Alias isActive="yes" isFolder="no">
+                <name>mpkg upgrade</name>
+                <script>local packages = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {installed = &quot;!=&quot;}))
+for _, package in ipairs(packages) do
+	local installed = package.installed:split(&quot;%.&quot;)
+	local version = package.version:split(&quot;%.&quot;)
+	if not (tonumber(installed[1]) &gt; tonumber(version[1]) or tonumber(installed[2]) &gt; tonumber(version[2]) or tonumber(installed[3]) &gt; tonumber(version[3])) then
+		if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg&quot;) then
+			local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg&quot;)
+			assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))	
+		end
+		if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg/cache&quot;) then
+			local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg/cache&quot;)
+			assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))
+		end
+
+		if not mpkg.transaction.type then
+			cecho(&quot;&lt;green&gt;Staging package &quot; .. package.name .. &quot;for upgrade to version &quot; .. package.version .. &quot;.\n&quot;)
+			mpkg.transaction.type = &quot;upgrade&quot;
+			mpkg.transaction.argument = {}
+			mpkg.transaction.argument[#mpkg.transaction.argument+1] = { name = package.name, url = package.url }
+		else
+			cecho(&quot;&lt;red&gt;There is currently an &quot; .. mpkg.transaction.type .. &quot; in progress. Please wait for it to finish and try again.\n&quot;)
+			return
+		end
+	else
+		cecho(&quot;&lt;green&gt;No packages to upgrade.\n&quot;)
+	end
+
+	downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. packages[1].name, packages[1].url)
+
+end</script>
+                <command></command>
+                <packageName></packageName>
+                <regex>^mpkg upgrade$</regex>
+            </Alias>
+        </AliasGroup>
+    </AliasPackage>
+    <ActionPackage/>
+    <ScriptPackage>
+        <ScriptGroup isActive="yes" isFolder="yes">
+            <name>mpkg</name>
+            <packageName></packageName>
+            <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+</script>
+            <eventHandlerList/>
+            <Script isActive="yes" isFolder="no">
+                <name>patch DB</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+-- If we don't have qzery_by_example, we need to patch DB.lua as there were a lot of bugs.
+if not db.query_by_example then
+
+-- the timestamp is stored in UTC time, so work out the difference in seconds
+-- from local to UTC time. Credit: https://github.com/stevedonovan/Penlight/blob/master/lua/pl/Date.lua#L85
+function datetime:calculate_UTCdiff(ts)
+   local date, time = os.date, os.time
+   local utc = date('!*t',ts)
+   local lcl = date('*t',ts)
+   lcl.isdst = false
+   return os.difftime(time(lcl), time(utc))
+end
+
+-- NOT LUADOC
+-- The rex.match function does not return named patterns even if you use named capture
+-- groups, but the r:tfind does -- but this only operates on compiled patterns. So,
+-- we are caching the conversion of 'simple format' date patterns into a regex, and
+-- then compiling them.
+function datetime:_get_pattern(format)
+   if not datetime._pattern_cache[format] then
+      local fmt = rex.gsub(format, &quot;(%[A-Za-z])&quot;,
+         function(m)
+               return datetime._directives[m] or m
+         end
+         )
+
+      datetime._pattern_cache[format] = rex.new(fmt, rex.flags().CASELESS)
+   end
+
+   return datetime._pattern_cache[format]
+end
+
+
+
+--- Parses the specified source string, according to the format if given, to return a representation of
+--- the date/time. The default format if not specified is: &quot;^%Y-%m-%d %H:%M:%S$&quot; &lt;br/&gt;&lt;br/&gt;
+---
+--- If as_epoch is provided and true, the return value will be a Unix epoch -- the number
+--- of seconds since 1970. This is a useful format for exchanging date/times with other systems. If as_epoch
+--- is false, then a Lua time table will be returned. Details of the time tables are provided
+--- in the http://www.lua.org/pil/22.1.html. &lt;br/&gt;&lt;br/&gt;
+---
+--- Supported Format Codes
+---   &lt;/pre&gt;
+---   %b   Abbreviated Month Name
+---   %B   Full Month Name
+---   %d   Day of Month
+---   %H   Hour (24-hour format)
+---   %I   Hour (12-hour format, requires %p as well)
+---   %p   AM or PM
+---   %m   2-digit month (01-12)
+---   %M   2-digit minutes (00-59)
+---   %S   2-digit seconds (00-59)
+---   %y   2-digit year (00-99), will automatically prepend 20 so 10 becomes 2010 and not 1910.
+---   %Y   4-digit year.
+---   &lt;/pre&gt;
+function datetime:parse(source, format, as_epoch)
+   if not format then
+      format = &quot;^%Y-%m-%d %H:%M:%S$&quot;
+   end
+
+   local fmt = datetime:_get_pattern(format)
+   local m = {fmt:tfind(source)}
+
+   if m and m[3] then
+      m = m[3]
+      dt = {}
+
+      if m.year_half then
+         dt.year = tonumber(&quot;20&quot;..m.year_half)
+      elseif m.year_full then
+         dt.year = tonumber(m.year_full)
+      end
+
+      if m.month then
+         dt.month = tonumber(m.month)
+      elseif m.month_name then
+         dt.month = datetime._month_names[m.month_name:lower()]
+      elseif m.abbrev_month_name then
+         dt.month = datetime._abbrev_month_names[m.abbrev_month_name:lower()]
+      end
+
+      dt.day = m.day_of_month
+
+      if m.hour_12 then
+         assert(m.ampm, &quot;You must use %p (AM|PM) with %I (12-hour time)&quot;)
+         if m.ampm == &quot;PM&quot; then
+            dt.hour = 12 + tonumber(m.hour_12)
+         else
+            dt.hour = tonumber(m.hour_12)
+         end
+      else
+         dt.hour = tonumber(m.hour_24)
+      end
+
+      dt.min = tonumber(m.minute)
+      dt.sec = tonumber(m.second)
+      dt.isdst = false
+
+      if as_epoch then
+         return os.time(dt)
+      else
+         return dt
+      end
+   else
+      return nil
+   end
+end
+
+
+
+-----------------------------------------------------------------------------
+-- The database wrapper library
+-----------------------------------------------------------------------------
+if package.loaded[&quot;luasql.sqlite3&quot;] then luasql = require &quot;luasql.sqlite3&quot; end
+
+db = {}
+db.__autocommit = {}
+db.__schema = {}
+db.__conn = {}
+
+db.debug_sql = false
+
+
+
+-- NOT LUADOC
+-- Converts the type of a lua object to the equivalent type in SQL
+function db:_sql_type(value)
+   local t = type(value)
+
+   if t == &quot;number&quot; then
+      return &quot;REAL&quot;
+   elseif t == &quot;nil&quot; then
+      return &quot;NULL&quot;
+   elseif t == &quot;table&quot; and value._timestamp ~= nil then
+      return &quot;INTEGER&quot;
+   else
+      return &quot;TEXT&quot;
+   end
+end
+
+
+
+-- NOT LUADOC
+-- Converts a data value in Lua to its SQL equivalent; notably it will also escape single-quotes to
+-- prevent inadvertant SQL injection.
+-- called when generating the schema
+function db:_sql_convert(value)
+   local t = db:_sql_type(value)
+
+   if value == nil then
+      return &quot;NULL&quot;
+   elseif t == &quot;TEXT&quot; and type(value) == &quot;string&quot; then
+      return '&quot;'..value:gsub(&quot;'&quot;, &quot;''&quot;)..'&quot;'
+   elseif t == &quot;NULL&quot; then
+      return &quot;NULL&quot;
+   elseif t == &quot;INTEGER&quot; then
+      -- With db.Timestamp's, a value of false should be interpreted as nil.
+      if value._timestamp == false then
+         return &quot;NULL&quot;
+      end
+      return tostring(value._timestamp)
+   else
+      return tostring(value)
+   end
+end
+
+
+
+-- NOT LUADOC
+-- Given a sheet name and the details of an index, this function will return a unique index name to
+-- add to the database. The purpose of this is to create unique index names as indexes are tested
+-- for existance on each call of db:create and not only on creation. That way new indexes can be
+-- added after initial creation.
+function db:_index_name(tbl_name, params)
+   local t = type(params)
+
+   if t == &quot;string&quot; then
+      return &quot;idx_&quot; .. tbl_name .. &quot;_c_&quot; .. params
+   elseif assert(t == &quot;table&quot;, &quot;Indexes must be either a string or a table.&quot;) then
+      local parts = {&quot;idx&quot;, tbl_name, &quot;c&quot;}
+      for _, v in pairs(params) do
+         parts[#parts+1] = v
+      end
+      return table.concat(parts, &quot;_&quot;)
+   end
+end
+
+
+
+-- NOT LUADOC
+-- This function returns true if all of the columns referenced in index_columns also exist within
+-- the sheet_columns table array. The purpose of this is to raise an error if someone tries to index
+-- a column which doesn't currently exist in the schema.
+function db:_index_valid(sheet_columns, index_columns)
+   if type(index_columns) == &quot;string&quot; then
+      if sheet_columns[index_columns] ~= nil then
+         return true
+      else
+         return false
+      end
+   else
+      for _, v in ipairs(index_columns) do
+         if sheet_columns[v] == nil then
+            db:echo_sql(&quot;\n--&gt; Bad index &quot;..v)
+            return false
+         end
+      end
+   end
+   return true
+end
+
+
+
+-- NOT LUADOC
+-- The column_spec is either a string or an indexed table. This function returns either &quot;column&quot; or
+-- &quot;column1&quot;, &quot;column2&quot; for use in the column specification of INSERT.
+function db:_sql_columns(value)
+   local colstr = ''
+   local t = type(value)
+
+   if t == &quot;table&quot; then
+      col_chunks = {}
+      for _, v in ipairs(value) do
+         -- see https://www.sqlite.org/syntaxdiagrams.html#ordering-term
+         if v:lower() == &quot;desc&quot; or v:lower() == &quot;asc&quot; then
+            col_chunks[#col_chunks] = col_chunks[#col_chunks] .. &quot; &quot; .. v
+         else
+            col_chunks[#col_chunks+1] = '&quot;'..v:lower()..'&quot;'
+         end
+      end
+
+      colstr = table.concat(col_chunks, ',')
+   elseif assert(t == &quot;string&quot;,
+         &quot;Must specify either a table array or string for index, not &quot;..type(value)) then
+      colstr = '&quot;'..value:lower()..'&quot;'
+   end
+   return colstr
+end
+
+
+
+-- NOT LUADOC
+-- This serves as a very similar function to db:_sql_columns, quoting column names properly but for
+-- uses outside of INSERTs.
+function db:_sql_fields(values)
+   local sql_fields = {}
+
+   for k, v in pairs(values) do
+      sql_fields[#sql_fields+1] = '&quot;'..k..'&quot;'
+   end
+
+   return   &quot;(&quot;..table.concat(sql_fields, &quot;,&quot;)..&quot;)&quot;
+end
+
+
+
+-- NOT LUADOC
+-- This quotes values to be passed into an INSERT or UPDATE operation in a SQL list. Meaning, it turns
+-- {x=&quot;this&quot;, y=&quot;that&quot;, z=1} into ('this', 'that', 1).
+-- It is intelligent with data-types; strings are automatically quoted (with internal single quotes
+-- escaped), nil turned into NULL, timestamps converted to integers, and such.
+function db:_sql_values(values)
+   local sql_values = {}
+
+   for k, v in pairs(values) do
+      local t = type(v)
+      local s = &quot;&quot;
+
+      if t == &quot;string&quot; then
+         s = &quot;'&quot;..v:gsub(&quot;'&quot;, &quot;''&quot;)..&quot;'&quot;
+      elseif t == &quot;nil&quot; then
+         s = &quot;NULL&quot;
+      elseif t == &quot;table&quot; and t._timestamp ~= nil then
+         if not t._timestamp then
+            return &quot;NULL&quot;
+         else
+            s = &quot;datetime('&quot;..t._timestamp..&quot;', 'unixepoch')&quot;
+         end
+      else
+         s = tostring(v)
+      end
+
+      sql_values[#sql_values+1] = s
+   end
+
+   return &quot;(&quot;..table.concat(sql_values, &quot;,&quot;)..&quot;)&quot;
+end
+
+
+
+--- &lt;b&gt;&lt;u&gt;TODO&lt;/u&gt;&lt;/b&gt; db:safe_name(name)
+--   On a filesystem level, names are restricted to being alphanumeric only. So, &quot;my_database&quot; becomes
+--   &quot;mydatabase&quot;, and &quot;../../../../etc/passwd&quot; becomes &quot;etcpasswd&quot;. This prevents any possible
+--   security issues with database names.
+function db:safe_name(name)
+   name = name:gsub(&quot;[^%ad]&quot;, &quot;&quot;)
+   name = name:lower()
+   return name
+end
+
+
+
+--- Creates and/or modifies an existing database. This function is safe to define at a top-level of a Mudlet
+--- script: in fact it is reccommended you run this function at a top-level without any kind of guards.
+--- If the named database does not exist it will create it. If the database does exist then it will add
+--- any columns or indexes which didn't exist before to that database. If the database already has all the
+--- specified columns and indexes, it will do nothing. &lt;br/&gt;&lt;br/&gt;
+---
+--- The database will be called Database_&lt;sanitized database name&gt;.db and will be stored in the
+--- Mudlet configuration directory. &lt;br/&gt;&lt;br/&gt;
+---
+--- Database 'tables' are called 'sheets' consistently throughout this documentation, to avoid confusion
+--- with Lua tables. &lt;br/&gt;&lt;br/&gt;
+---
+--- The schema table must be a Lua table array containing table dictionaries that define the structure and
+--- layout of each sheet. &lt;br/&gt;&lt;br/&gt;
+---
+--- For sheets with unique indexes, you may specify a _violations key to indicate how the db layer handle
+--- cases where the unique index is violated. The options you may use are:
+---   &lt;pre&gt;
+---   FAIL - the default. A hard error is thrown, cancelling the script.
+---   IGNORE - The command that would add a record that violates uniqueness just fails silently.
+---   REPLACE - The old record which matched the unique index is dropped, and the new one is added to replace it.
+---   &lt;/pre&gt;
+---
+--- @usage Example bellow will create a database with two sheets; the first is kills and is used to track every successful kill,
+---   with both where and when the kill happened. It has one index, a compound index tracking the combination of name and area.
+---   The second sheet has two indexes, but one is unique: it isn't possible to add two items to the enemies sheet with the same name.
+---   &lt;pre&gt;
+---   local mydb = db:create(&quot;combat_log&quot;,
+---     {
+---       kills = {
+---         name = &quot;&quot;,
+---         area = &quot;&quot;,
+---         killed = db:Timestamp(&quot;CURRENT_TIMESTAMP&quot;),
+---         _index = {{&quot;name&quot;, &quot;area&quot;}}
+---       },
+---       enemies = {
+---         name = &quot;&quot;,
+---         city = &quot;&quot;,
+---         reason = &quot;&quot;,
+---         enemied = db:Timestamp(&quot;CURRENT_TIMESTAMP&quot;),
+---         _index = { &quot;city&quot; },
+---         _unique = { &quot;name&quot; },
+---         _violations = &quot;IGNORE&quot;
+---       }
+---     }
+---   )
+---   &lt;/pre&gt;
+---   Note that you have to use double {{ }} if you have composite index/unique constrain.
+function db:create(db_name, sheets)
+   if not db.__env then
+      db.__env = luasql.sqlite3()
+   end
+
+   db_name = db:safe_name(db_name)
+
+   if not db.__conn[db_name] then
+      db.__conn[db_name] = db.__env:connect(getMudletHomeDir() .. &quot;/Database_&quot; .. db_name .. &quot;.db&quot;)
+      db.__conn[db_name]:setautocommit(false)
+      db.__autocommit[db_name] = true
+   end
+
+   db.__schema[db_name] = {}
+
+   -- We need to separate the actual column configuration from the meta-configuration of the desired
+   -- sheet. {sheet={&quot;column&quot;}} verses {sheet={&quot;column&quot;}, _index={&quot;column&quot;}}. In the former we are
+   -- creating a database with a single field; in the latter we are also adding an index on that
+   -- field. The db package reserves any key that begins with an underscore to be special and syntax
+   -- for its own use.
+   for s_name, sht in pairs(sheets) do
+      options = {}
+
+      if sht[1] ~= nil then         -- in case the sheet was provided in the sheet = {&quot;column1&quot;, &quot;column2&quot;} format:
+         local t = {}               --   assume field types are text, and should default to &quot;&quot;
+         for k, v in pairs(sht) do
+            t[v] = &quot;&quot;
+         end
+         sht = t
+      else                          -- sheet provided in the sheet = {&quot;column1&quot; = default} format
+         local opts = {}
+         for k, v in pairs(sht) do
+            if string.starts(k, &quot;_&quot;) then
+               options[k] = v
+               opts[#opts + 1] = k
+            end
+         end
+         for _, v in ipairs(opts) do
+            sht[v] = nil
+         end
+      end
+
+      if not options._violations then
+         options._violations = &quot;FAIL&quot;
+      end
+
+      db.__schema[db_name][s_name] = {columns=sht, options=options}
+      db:_migrate(db_name, s_name)
+   end
+   return db:get_database(db_name)
+end
+
+
+
+-- NOT LUADOC
+-- The migrate function is meant to upgrade an existing database live, to maintain a consistant
+-- and correct set of sheets and fields, along with their indexes. It should be safe to run
+-- at any time, and must not cause any data loss. It simply adds to what is there: in perticular
+-- it is not capable of removing indexes, columns, or sheets after they have been defined.
+function db:_migrate(db_name, s_name)
+   local conn = db.__conn[db_name]
+   local schema = db.__schema[db_name][s_name]
+
+   local current_columns = {}
+
+   -- The PRAGMA table_info command is a query which returns all of the columns currently
+   -- defined in the specified table. The purpose of this section is to see if any new columns
+   -- have been added.
+   local cur = conn:execute(&quot;PRAGMA table_info('&quot;..s_name..&quot;')&quot;) -- currently broken - LuaSQL bug, needs to be upgraded for new sqlite API
+
+   if type(cur) ~= &quot;number&quot; then
+      local row = cur:fetch({}, &quot;a&quot;)
+      if row then
+         while row do
+            current_columns[row.name] = row.type
+            row = cur:fetch({}, &quot;a&quot;)
+         end
+      else
+         ---------------  GETS ALL COLUMNS FROM SHEET IF IT EXISTS
+         db:echo_sql(&quot;SELECT * FROM &quot;..s_name)
+         local get_sheet_cur = conn:execute(&quot;SELECT * FROM &quot;..s_name)  -- select the sheet
+
+         if get_sheet_cur and get_sheet_cur ~= 0 then
+            local row = get_sheet_cur:fetch({}, &quot;a&quot;) -- grab the first row, if any
+            if not row then -- if no first row then
+               local tried_cols, contains, found_something, col = {}, table.contains, false
+
+               while not found_something do -- guarded by the error below from infinite looping
+                  col = false
+                  for k,v in pairs(schema.columns) do -- look through sheet schema to find the first column that is text
+                     if type(k) == &quot;number&quot; then
+                        if string.sub(v,1,1) ~= &quot;_&quot; and not contains(tried_cols, v) then col = v break end
+                     else
+                        if string.sub(k,1,1) ~= &quot;_&quot; and type(v) == &quot;string&quot; and not contains(tried_cols, k) then col = k break end
+                     end
+                  end
+
+                  if not col then error(&quot;db:_migrate: cannot find a suitable column for testing a new row with.&quot;) end
+
+                  -- add row with found column set as &quot;test&quot;
+                  db:add({_db_name = db_name, _sht_name = s_name},{[col] = &quot;test&quot;})
+
+                  db:echo_sql(&quot;SELECT * FROM &quot;..s_name)
+                  local get_row_cur = conn:execute(&quot;SELECT * FROM &quot;..s_name) -- select the sheet
+                  row = get_row_cur:fetch({}, &quot;a&quot;) -- grab the newly created row
+                  get_row_cur:close()
+
+                  -- delete the newly created row. If we picked a row that doesn't exist yet and we're
+                  -- trying to add, the delete will fail - remember this, and try another row
+                  local worked, msg = pcall(db.delete, db, {_db_name = db_name, _sht_name = s_name},db:eq({database = db_name, sheet = s_name, name = col, type = &quot;string&quot;},&quot;test&quot;))
+
+                  if not worked then
+                     tried_cols[#tried_cols+1] = col
+                  else
+                     found_something = true
+                  end
+               end
+            end
+
+            if row then -- add each column from row to current_columns table
+               for k,v in pairs(row) do
+                  current_columns[k] = &quot;&quot;
+               end
+            end
+            get_sheet_cur:close()
+         end
+      end
+   end
+
+   if type(cur) == &quot;userdata&quot; then
+      cur:close()
+   end
+
+   -- The SQL definition of a column is:
+   --    &quot;column_name&quot; column_type NULL
+   -- The db module does not presently support columns that are required. Everything is optional,
+   -- everything may be NULL / nil.
+   -- If you specify a column's type, you also specify its default value.
+   if table.is_empty(current_columns) then
+      -- At this point, we know that the specified table does not exist in the database and so we
+      -- should create it.
+
+      -- Every sheet has an implicit _row_id column. It is not presently (and likely never will be)
+      -- supported to define the primary key of any sheet.
+      local sql = db:_build_create_table_sql(schema, s_name)
+      db:echo_sql(sql)
+      conn:execute(sql)
+
+   else
+      -- At this point we know that the sheet already exists, but we are concerned if the current
+      -- definition includes columns which may be added.
+      local missing = {}
+
+      for k, v in pairs(schema.columns) do
+
+         -- Here we test it a given column exists in the sheet already, and if not, we add that
+         -- column.
+         if not current_columns[k] then
+            missing[#missing + 1] = { name = k, default = v }
+         end
+      end
+
+      if #missing &gt; 0 and 
+         table.size(current_columns) + #missing == table.size(schema.columns)+1
+         -- We have changes and when we did those changes, we have exactly
+         -- the number of columns we need. The &quot;+1&quot; is for the _row_id
+         -- which is not in the schema.
+      then
+         local sql_add = 'ALTER TABLE %s ADD COLUMN &quot;%s&quot; %s NULL DEFAULT %s'
+         for _, v in ipairs(missing) do
+            local t = db:_sql_type(v.default)
+            local def = db:_sql_convert(v.default)
+            local sql = sql_add:format(s_name, v.name, t, def)
+            conn:execute(sql)
+            db:echo_sql(sql)
+         end
+      elseif 
+         #missing + table.size(current_columns) &gt; table.size(schema.columns) + 1
+         -- if we add all missing columns and we have more columns than we want
+         -- then there are currently some columns we don't want anymore.
+      then
+         local get_create = &quot;SELECT sql FROM sqlite_master &quot; ..
+                            &quot;WHERE type = 'table' AND &quot; ..
+                            &quot;name = '&quot; .. s_name ..&quot;'&quot;
+         local ret_str
+         cur, ret_str = conn:execute(get_create)
+         assert(cur, ret_str)
+         if type(cur) ~= &quot;number&quot; then
+            local row = cur:fetch({}, &quot;a&quot;);
+            cur:close()
+            local create_tmp = row.sql:gsub(s_name, s_name .. &quot;_bak&quot;)
+            local sql_chunks = {}
+            local fields = { &quot;_row_id&quot; }
+            local sql
+
+            create_tmp = create_tmp:gsub(&quot;TABLE&quot;, &quot;TEMPORARY TABLE&quot;)
+
+            for k, _ in pairs(schema.columns) do
+              fields[#fields + 1] = string.format('&quot;%s&quot;', k)
+            end
+            local fields_sql = table.concat(fields, &quot;, &quot;)
+
+            sql_chunks[#sql_chunks + 1] = create_tmp .. &quot;;&quot;
+            sql_chunks[#sql_chunks + 1] = &quot;INSERT INTO &quot; .. s_name .. &quot;_bak &quot; ..
+                                          &quot;SELECT * FROM &quot; .. s_name .. &quot;;&quot;
+            sql_chunks[#sql_chunks + 1] = &quot;DROP TABLE &quot; .. s_name .. &quot;;&quot;
+            sql_chunks[#sql_chunks + 1] = db:_build_create_table_sql(schema,
+                                               s_name) .. &quot;;&quot;
+            sql_chunks[#sql_chunks + 1] = string.format(
+                 &quot;INSERT INTO %s SELECT %s FROM %s_bak;&quot;, s_name, fields_sql,
+                 s_name)
+            sql_chunks[#sql_chunks + 1] = &quot;DROP TABLE &quot; .. s_name .. &quot;_bak;&quot;
+
+            for _, sql in ipairs(sql_chunks) do
+               db:echo_sql(sql)
+               local ret, str = conn:execute(sql)
+               assert(ret, str)
+            end
+         end
+      end
+   end
+
+   -- On every invocation of db:create we run the code that creates indexes, as that code will
+   -- do nothing if the specific indexes already exist. This is enforced by the db:_index_name
+   -- function creating a unique index.
+   --
+   -- Note that in no situation will an existing index be deleted.
+
+   -- make up current_columns, as pragma_info currently does not populate it, due to luasql bug
+   for key, value in pairs(schema.columns) do
+      current_columns[key] =  db:_sql_type(value)
+   end
+
+   db:_migrate_indexes(conn, s_name, schema, current_columns)
+   db:echo_sql(&quot;COMMIT&quot;)
+   conn:commit()
+   conn:execute(&quot;VACUUM&quot;)
+end
+
+function db:_build_create_table_sql(schema, s_name)
+
+   local sql_column = ', &quot;%s&quot; %s NULL'
+   local sql_column_default = sql_column..' DEFAULT %s'
+
+
+   local sql_chunks = {&quot;CREATE TABLE &quot;, s_name,  '(&quot;_row_id&quot; INTEGER PRIMARY KEY AUTOINCREMENT'}
+
+      -- We iterate over every defined column, and add a line which creates it.
+   for key, value in pairs(schema.columns) do
+      local sql = &quot;&quot;
+      if value == nil then
+         sql = sql_column:format(key, db:_sql_type(value))
+      else
+         sql = sql_column_default:format(key, db:_sql_type(value), db:_sql_convert(value))
+      end
+      if (type(schema.options._unique) == &quot;table&quot; and table.contains(schema.options._unique, key))
+         or (type(schema.options._unique) == &quot;string&quot; and schema.options._unique == key) then
+         sql = sql .. &quot; UNIQUE&quot;
+      end
+      sql_chunks[#sql_chunks+1] = sql
+   end
+
+   sql_chunks[#sql_chunks+1] = &quot;)&quot;
+
+   return table.concat(sql_chunks, &quot;&quot;)
+end
+
+
+-- NOT LUADOC
+-- Creates any indexes which do not yet exist in the given database.
+function db:_migrate_indexes(conn, s_name, schema, current_columns)
+   local sql_create_index = &quot;CREATE %s IF NOT EXISTS %s ON %s (%s);&quot;
+   local opt = {_unique = &quot;UNIQUE INDEX&quot;, _index = &quot;INDEX&quot;} -- , _check = &quot;CHECK&quot;}
+
+   for option_type, options in pairs(schema.options) do
+      if option_type == &quot;_unique&quot; or option_type == &quot;_index&quot; then
+         for _, value in pairs(options) do
+
+            -- If an index references a column which does not presently exist within the schema
+            -- this will fail.
+
+            if db:_index_valid(current_columns, value) then
+               --assert(db:_index_valid(current_columns, value),
+               --      &quot;In sheet &quot;..s_name..&quot; an index field is specified that does not exist.&quot;)
+
+               local sql = sql_create_index:format(
+                     opt[option_type], db:_index_name(s_name, value), s_name, db:_sql_columns(value)
+               )
+               db:echo_sql(sql)
+               conn:execute(sql)
+            end
+         end
+      end
+   end
+end
+
+
+
+--- Adds one or more new rows to the specified sheet. If any of these rows would violate a UNIQUE index,
+--- a lua error will be thrown and execution will cancel. As such it is advisable that if you use a UNIQUE
+--- index, you test those values before you attempt to insert a new row. &lt;br/&gt;&lt;br/&gt;
+---
+--- Each table is a series of key-value pairs to set the values of the sheet, but if any keys do not exist
+--- then they will be set to nil or the default value. As you can see, all fields are optional.
+---
+--- @usage Adding one record.
+---   &lt;pre&gt;
+---   db:add(mydb.enemies, {name=&quot;Bob Smith&quot;, city=&quot;San Francisco&quot;})
+---   &lt;/pre&gt;
+--- @usage Adding multiple records.
+---   &lt;pre&gt;
+---   db:add(mydb.enemies,
+---     {name=&quot;John Smith&quot;, city=&quot;San Francisco&quot;},
+---     {name=&quot;Jane Smith&quot;, city=&quot;San Francisco&quot;},
+---     {name=&quot;Richard Clark&quot;}
+---   )
+---   &lt;/pre&gt;
+function db:add(sheet, ...)
+   local db_name = sheet._db_name
+   local s_name = sheet._sht_name
+   assert(s_name, &quot;First argument to db:add must be a proper Sheet object.&quot;)
+
+   local conn = db.__conn[db_name]
+   local sql_insert = &quot;INSERT OR %s INTO %s %s VALUES %s&quot;
+
+   for _, t in ipairs({...}) do
+      if t._row_id then
+         -- You are not permitted to change a _row_id
+         t._row_id = nil
+      end
+
+      local sql = sql_insert:format(db.__schema[db_name][s_name].options._violations, s_name, db:_sql_fields(t), db:_sql_values(t))
+      db:echo_sql(sql)
+
+      local result, msg = conn:execute(sql)
+      if not result then return nil, msg end
+   end
+   if db.__autocommit[db_name] then
+      conn:commit()
+   end
+   return true
+end
+
+
+
+--- Execute SQL select query against database. This only useful for some very specific cases. &lt;br/&gt;
+--- Use db:fetch if possible instead - this function should not be normally used!
+---
+--- @release post Mudlet 1.1.1 (&lt;b&gt;&lt;u&gt;TODO update before release&lt;/u&gt;&lt;/b&gt;)
+---
+--- @usage Following will select all distinct area from my kills DB.
+---   &lt;pre&gt;
+---   db:fetch_sql(mydb.kills, &quot;SELECT distinct area FROM kills&quot;)
+---   &lt;/pre&gt;
+---
+--- @see db:fetch
+function db:fetch_sql(sheet, sql)
+   local db_name = sheet._db_name
+   local conn = db.__conn[db_name]
+
+   db:echo_sql(sql)
+   local cur = conn:execute(sql)
+
+   -- if we had a syntax error in our SQL, cur will be nil
+   if cur and cur ~= 0 then
+      local results = {}
+      local row = cur:fetch({}, &quot;a&quot;)
+
+      while row do
+         results[#results+1] = db:_coerce_sheet(sheet, row)
+         row = cur:fetch({}, &quot;a&quot;)
+      end
+      cur:close()
+      return results
+   else
+      return nil
+   end
+end
+
+
+
+--- Returns a table array containing a table for each matching row in the specified sheet. All arguments
+--- but sheet are optional. If query is nil, the entire contents of the sheet will be returned. &lt;br/&gt;&lt;br/&gt;
+---
+--- Query is a string which should be built by calling the various db: expression functions, such as db:eq,
+--- db:AND, and such. You may pass a SQL WHERE clause here if you wish, but doing so is very dangerous.
+--- If you don't know SQL well, its best to build the expression.&lt;br/&gt;&lt;br/&gt;
+---
+--- Query may also be a table array of such expressions, if so they will be AND'd together implicitly.&lt;br/&gt;&lt;br/&gt;
+---
+--- The results that are returned are not in any guaranteed order, though they are usually the same order
+--- as the records were inserted. If you want to rely on the order in any way, you must pass a value to the
+--- order_by field. This must be a table array listing the fields you want to sort by.
+--- It can be { mydb.kills.area }, or { mydb.kills.area, mydb.kills.name } &lt;br/&gt;&lt;br/&gt;
+---
+--- The results are returned in ascending (smallest to largest) order; to reverse this pass true into the final field.
+---
+--- @usage The first will fetch all of your enemies, sorted first by the city they reside in and then by their name.
+---   &lt;pre&gt;
+---   db:fetch(mydb.enemies, nil, {mydb.enemies.city, mydb.enemies.name})
+---   &lt;/pre&gt;
+--- @usage The second will fetch only the enemies which are in San Francisco.
+---   &lt;pre&gt;
+---   db:fetch(mydb.enemies, db:eq(mydb.enemies.city, &quot;San Francisco&quot;))
+---   &lt;/pre&gt;
+--- @usage The third will fetch all the things you've killed in Undervault which have Drow in their name.
+---   &lt;pre&gt;
+---   db:fetch(mydb.kills,
+---      {
+---         db:eq(mydb.kills.area, &quot;Undervault&quot;),
+---         db:like(mydb.kills.name, &quot;%Drow%&quot;)
+---      }
+---   )
+---   &lt;/pre&gt;
+---
+--- @see db:fetch_sql
+function db:fetch(sheet, query, order_by, descending)
+   local s_name = sheet._sht_name
+
+   local sql = &quot;SELECT * FROM &quot;..s_name
+
+   if query then
+      if type(query) == &quot;table&quot; then
+         sql = sql..&quot; WHERE &quot;..db:AND(unpack(query))
+      else
+         sql = sql..&quot; WHERE &quot;..query
+      end
+   end
+
+   if order_by then
+      local o = {}
+      for _, v in ipairs(order_by) do
+         assert(v.name, &quot;You must pass field instances (as obtained from yourdb.yoursheet.yourfield) to sort.&quot;)
+         o[#o+1] = v.name
+
+         if descending then
+            o[#o+1] = &quot;DESC&quot;
+         end
+      end
+
+      sql = sql..&quot; ORDER BY &quot;..db:_sql_columns(o)
+   end
+
+   return db:fetch_sql(sheet, sql)
+end
+
+
+
+--- Returns the result of calling the specified aggregate function on the field and its sheet. &lt;br/&gt;&lt;br/&gt;
+---
+--- The supported aggregate functions are:
+---   &lt;pre&gt;
+---   COUNT - Returns the total number of records that are in the sheet or match the query.
+---   AVG   - Returns the average of all the numbers in the specified field.
+---   MAX   - Returns the highest number in the specified field.
+---   MIN   - Returns the lowest number in the specified field.
+---   TOTAL - Returns the value of adding all the contents of the specified field.
+---   &lt;/pre&gt;
+---
+--- @param query optional
+---
+--- @usage Example:
+---   &lt;pre&gt;
+---   local mydb = db:get_database(&quot;my database&quot;)
+---   echo(db:aggregate(mydb.enemies.name, &quot;count&quot;))
+---   &lt;/pre&gt;
+function db:aggregate(field, fn, query, distinct)
+   local db_name = field.database
+   local s_name = field.sheet
+   local conn = db.__conn[db_name]
+
+   assert(type(field) == &quot;table&quot;, &quot;Field must be a field reference.&quot;)
+   assert(field.name, &quot;Field must be a real field reference.&quot;)
+
+   local sql_chunks = {&quot;SELECT&quot;, fn, &quot;(&quot;, distinct and &quot;DISTINCT&quot; or &quot;&quot;, field.name, &quot;)&quot;, &quot;AS&quot;, fn, &quot;FROM&quot;, s_name}
+
+   if query then
+      sql_chunks[#sql_chunks+1] = &quot;WHERE&quot;
+      if type(query) == &quot;table&quot; then
+         sql_chunks[#sql_chunks+1] = db:AND(unpack(query))
+      else
+         sql_chunks[#sql_chunks+1] = query
+      end
+   end
+
+   local sql = table.concat(sql_chunks, &quot; &quot;)
+
+   db:echo_sql(sql)
+   local cur = conn:execute(sql)
+
+   if cur ~= 0 then
+      local row = cur:fetch({}, &quot;a&quot;)
+      local count = row[fn]
+      cur:close()
+      
+      -- give back the correct data type. see http://www.sqlite.org/lang_aggfunc.html
+      if (fn:upper() ~= &quot;MIN&quot; and fn:upper() ~= &quot;MAX&quot;) or field.type == &quot;number&quot; then
+         return tonumber(count)
+      end
+      if field.type == &quot;string&quot; then
+        return count
+      end
+      -- Only datetime left
+      -- the value, count, is currently in a UTC timestamp
+      local localtime = datetime:parse(count, nil, true)
+      -- convert it into a UTC timestamp as datetime:parse parses it in the local time context
+      count = db:Timestamp(localtime + datetime:calculate_UTCdiff(localtime))
+      return count
+   else
+      return 0
+   end
+end
+
+
+
+--- Deletes rows from the specified sheet. The argument for query tries to be intelligent: &lt;br/&gt;
+--- * if it is a simple number, it deletes a specific row by _row_id &lt;br/&gt;
+--- * if it is a table that contains a _row_id (e.g., a table returned by db:get) it deletes just that record. &lt;br/&gt;
+--- * Otherwise, it deletes every record which matches the query pattern which is specified as with db:get. &lt;br/&gt;
+--- * If the query is simply true, then it will truncate the entire contents of the sheet. &lt;br/&gt;
+---
+--- @usage When passed an actual result table that was obtained from db:fetch, it will delete the record for that table.
+---   &lt;pre&gt;
+---   enemies = db:fetch(mydb.enemies)
+---   db:delete(mydb.enemies, enemies[1])
+---   &lt;/pre&gt;
+--- @usage When passed a number, will delete the record for that _row_id. This example shows getting the row id from a table.
+---   &lt;pre&gt;
+---   enemies = db:fetch(mydb.enemies)
+---   db:delete(mydb.enemies, enemies[1]._row_id)
+---   &lt;/pre&gt;
+--- @usage As above, but this example just passes in the row id directly.
+---   &lt;pre&gt;
+---   db:delete(mydb.enemies, 5)
+---   &lt;/pre&gt;
+--- @usage Here, we will delete anything which matches the same kind of query as db:fetch uses - namely,
+---   anyone who is in the city of San Francisco.
+---   &lt;pre&gt;
+---   db:delete(mydb.enemies, db:eq(mydb.enemies.city, &quot;San Francisco&quot;))
+---   &lt;/pre&gt;
+--- @usage And finally, we will delete the entire contents of the enemies table.
+---   &lt;pre&gt;
+---   db:delete(mydb.enemies, true)
+---   &lt;/pre&gt;
+function db:delete(sheet, query)
+   local db_name = sheet._db_name
+   local s_name = sheet._sht_name
+
+   local conn = db.__conn[db_name]
+
+   assert(query, &quot;must pass a query argument to db:delete()&quot;)
+   if type(query) == &quot;number&quot; then
+      query = &quot;_row_id = &quot;..tostring(query)
+   elseif type(query) == &quot;table&quot; then
+      assert(query._row_id, &quot;Passed a non-result table to db:delete, need a _row_id field to continue.&quot;)
+      query = &quot;_row_id = &quot;..tostring(query._row_id)
+   end
+
+   local sql = &quot;DELETE FROM &quot;..s_name
+
+   if query ~= true then
+      sql = sql..&quot; WHERE &quot;..query
+   end
+
+   db:echo_sql(sql)
+   assert(conn:execute(sql))
+   if db.__autocommit[db_name] then
+      conn:commit()
+   end
+end
+
+
+
+--- Merges the specified table array into the sheet, modifying any existing rows and adding any that don't exist.
+---
+--- This function is a convenience utility that allows you to quickly modify a sheet, changing
+--- existing rows and add new ones as appropriate. It ONLY works on sheets which have a unique
+--- index, and only when that unique index is only on a single field. For more complex situations
+--- you'll have to do the logic yourself.
+---
+--- The table array may contain tables that were either returned previously by db:fetch, or new tables
+--- that you've constructed with the correct fields, or any mix of both. Each table must have a value
+--- for the unique key that has been set on this sheet.
+---
+--- @usage For example, consider this database:
+---   &lt;pre&gt;
+---   local mydb = db:create(&quot;peopledb&quot;,
+---     {
+---       friends = {
+---         name = &quot;&quot;,
+---         race = &quot;&quot;,
+---         level = 0,
+---         city = &quot;&quot;,
+---         _index = { &quot;city&quot; },
+---         _unique = { &quot;name&quot; }
+---       }
+---     }
+---   )
+---   &lt;/pre&gt;
+---
+---   Here you have a database with one sheet, which contains your friends, their race, level,
+---   and what city they live in. Let's say you want to fetch everyone who lives in San Francisco, you could do:
+---   &lt;pre&gt;
+---   local results = db:fetch(mydb.friends, db:eq(mydb.friends.city, &quot;San Francisco&quot;))
+---   &lt;/pre&gt;
+---
+---   The tables in results are static, any changes to them are not saved back to the database.
+---   But after a major radioactive cataclysm rendered everyone in San Francisco a mutant,
+---   you could make changes to the tables as so:
+---   &lt;pre&gt;
+---   for _, friend in ipairs(results) do
+---     friend.race = &quot;Mutant&quot;
+---   end
+---   &lt;/pre&gt;
+---
+---   If you are also now aware of a new arrival in San Francisco, you could add them to that existing table array:
+---   &lt;pre&gt;
+---   results[#results+1] = {name=&quot;Bobette&quot;, race=&quot;Mutant&quot;, city=&quot;San Francisco&quot;}
+---   &lt;/pre&gt;
+---
+---   And commit all of these changes back to the database at once with:
+---   &lt;pre&gt;
+---   db:merge_unique(mydb.friends, results)
+---   &lt;/pre&gt;
+---
+---   The db:merge_unique function will change the 'city' values for all the people who we previously fetched, but then add a new record as well.
+function db:merge_unique(sheet, tables)
+   assert(type(tables) == &quot;table&quot;, &quot;db:merge_unique: missing the required table of data to merge&quot;)
+
+   local db_name = sheet._db_name
+   local s_name = sheet._sht_name
+
+   local unique_options = db.__schema[db_name][s_name].options._unique
+   assert(unique_options, &quot;db:merge_unique only works on a sheet with a unique index.&quot;)
+   assert(#unique_options == 1, &quot;db:merge_unique only works on a sheet with a single unique index.&quot;)
+
+   local unique_index = unique_options[1]
+   local unique_key = &quot;&quot;
+   if type(unique_index) == &quot;table&quot; then
+      assert(#unique_index == 1, &quot;db:merge_unique currently only supports sheets with a single unique index with a single column.&quot;)
+      unique_key = unique_index[1]
+   else
+      unique_key = unique_index
+   end
+
+   db:echo_sql(&quot;:: Unique index = &quot;..unique_key)
+
+   local conn = db.__conn[db_name]
+   local mydb = db:get_database(db_name)
+   mydb:_begin()
+
+   for _, tbl in ipairs(tables) do
+      assert(tbl[unique_key], &quot;attempting to db:merge_unique with a table that does not have the unique key.&quot;)
+
+      local results = db:fetch(sheet, db:eq(sheet[unique_key], tbl[unique_key]))
+      if results and results[1] then
+         local t = results[1]
+         for k, v in pairs(tbl) do
+            t[k] = v
+         end
+
+         db:update(sheet, t)
+      else
+         db:add(sheet, tbl)
+      end
+   end
+
+   mydb:_commit()
+   mydb:_end()
+end
+
+
+
+--- This function updates a row in the specified sheet, but only accepts a row which has been previously
+--- obtained by db:fetch. Its primary purpose is that if you do a db:fetch, then change the value of a field
+--- or tow, you can save back that table.
+---
+--- @usage This obtains a database reference, and queries the friends sheet for someone named Bob. As this
+---   returns a table array containing only one item, it assigns that one item to the local variable named bob.
+---   We then change the notes on Bob, and pass it into db:update() to save the changes back.
+---   &lt;pre&gt;
+---   local mydb = db:get_database(&quot;my database&quot;)
+---   local bob = db:fetch(mydb.friends, db:eq(mydb.friends.name, &quot;Bob&quot;))[1]
+---   bob.notes = &quot;He's a really awesome guy.&quot;
+---   db:update(mydb.friends, bob)
+---   &lt;/pre&gt;
+function db:update(sheet, tbl)
+   assert(tbl._row_id, &quot;Can only update a table with a _row_id&quot;)
+   assert(not table.is_empty(tbl), &quot;An empty table was passed to db:update&quot;)
+
+   local db_name = sheet._db_name
+   local s_name = sheet._sht_name
+
+   local conn = db.__conn[db_name]
+
+   local sql_chunks = {&quot;UPDATE OR&quot;, db.__schema[db_name][s_name].options._violations, s_name, &quot;SET&quot;}
+
+   local set_chunks = {}
+   local set_block = [[&quot;%s&quot; = %s]]
+
+   for k, v in pairs(db.__schema[db_name][s_name]['columns']) do
+      if tbl[k] then
+         local field = sheet[k]
+         set_chunks[#set_chunks+1] = set_block:format(k, db:_coerce(field, tbl[k]))
+      end
+   end
+
+   sql_chunks[#sql_chunks+1] = table.concat(set_chunks, &quot;,&quot;)
+   sql_chunks[#sql_chunks+1] = &quot;WHERE _row_id = &quot;..tbl._row_id
+
+   local sql = table.concat(sql_chunks, &quot; &quot;)
+   db:echo_sql(sql)
+   assert(conn:execute(sql))
+   if db.__autocommit[db_name] then
+      conn:commit()
+   end
+end
+
+
+
+--- The db:set function allows you to set a certain field to a certain value across an entire sheet.
+--- Meaning, you can change all of the last_read fields in the sheet to a certain value, or possibly only
+--- the last_read fields which are in a certain city. The query argument can be any value which is appropriate
+--- for db:fetch, even nil which will change the value for the specified column for EVERY row in the sheet.
+---
+--- For example, consider a situation in which you are tracking how many times you find a certain
+--- type of egg during Easter. You start by setting up your database and adding an Eggs sheet, and
+--- then adding a record for each type of egg.
+---   &lt;pre&gt;
+---   local mydb = db:create(&quot;egg database&quot;, {eggs = {color = &quot;&quot;, last_found = db.Timestamp(false), found = 0}})
+---   db:add(mydb.eggs,
+---     {color = &quot;Red&quot;},
+---     {color = &quot;Blue&quot;},
+---     {color = &quot;Green&quot;},
+---     {color = &quot;Yellow&quot;},
+---     {color = &quot;Black&quot;}
+---   )
+---   &lt;/pre&gt;
+---
+--- Now, you have three columns. One is a string, one a timestamp (that ends up as nil in the database),
+--- and one is a number. &lt;br/&gt;&lt;br/&gt;
+---
+--- You can then set up a trigger to capture from the mud the string, &quot;You pick up a (.*) egg!&quot;, and you
+--- end up arranging to store the value of that expression in a variable called &quot;myegg&quot;. &lt;br/&gt;&lt;br/&gt;
+---
+--- To increment how many we found, we will do this:
+---   &lt;pre&gt;
+---   myegg = &quot;Red&quot; -- We will pretend a trigger set this.
+---   db:set(mydb.eggs.found, db:exp(&quot;found + 1&quot;), db:eq(mydb.eggs.color, myegg))
+---   db:set(mydb.eggs.last_found, db.Timestamp(&quot;CURRENT_TIMESTAMP&quot;), db:eq(mydb.eggs.color, myegg))
+---   &lt;/pre&gt;
+---
+--- This will go out and set two fields in the Red egg sheet; the first is the found field, which will
+--- increment the value of that field (using the special db:exp function). The second will update the
+--- last_found field with the current time. &lt;br/&gt;&lt;br/&gt;
+---
+--- Once this contest is over, you may wish to reset this data but keep the database around.
+--- To do that, you may use a more broad use of db:set as such:
+---   &lt;pre&gt;
+---   db:set(mydb.eggs.found, 0)
+---   db:set(mydb.eggs.last_found, nil)
+---   &lt;/pre&gt;
+function db:set(field, value, query)
+   local db_name = field.database
+   local s_name = field.sheet
+
+   local conn = db.__conn[db_name]
+
+   local sql_update = [[UPDATE OR %s %s SET &quot;%s&quot; = %s]]
+   if query then
+       sql_update = sql_update .. [[ WHERE %s]]
+   end
+
+   local sql = sql_update:format(db.__schema[db_name][s_name].options._violations, s_name, field.name, db:_coerce(field, value), query)
+
+   db:echo_sql(sql)
+   assert(conn:execute(sql))
+   if db.__autocommit[db_name] then
+      conn:commit()
+   end
+end
+
+
+
+--- This is a debugging function, which echos any SQL commands if db.debug_sql is true.
+--- You should not call this function directly from Mudlet.
+---
+--- @usage Set following lua variable to enable SQL echos.
+---   &lt;pre&gt;
+---   db.debug_sql=true
+---   &lt;/pre&gt;
+function db:echo_sql(sql)
+   if db.debug_sql then
+      print(sql)
+   end
+end
+
+
+
+-- NOT LUADOC
+-- After a table so retrieved from the database, this function coerces values to
+-- their proper types. Specifically, numbers and datetimes become the proper
+-- types.
+function db:_coerce_sheet(sheet, tbl)
+   if tbl then
+      tbl._row_id = tonumber(tbl._row_id)
+
+      for k, v in pairs(tbl) do
+         if k ~= &quot;_row_id&quot; then
+            local field = sheet[k]
+            if field.type == &quot;number&quot; then
+               tbl[k] = tonumber(tbl[k]) or tbl[k]
+            elseif field.type == &quot;datetime&quot; then
+               -- the value, tbl[k], is currently in a UTC timestamp
+               local localtime = datetime:parse(tbl[k], nil, true)
+               -- convert it into a UTC timestamp as datetime:parse parses it in the local time context
+               tbl[k] = db:Timestamp(localtime + datetime:calculate_UTCdiff(localtime))
+            end
+         end
+      end
+      return tbl
+   end
+end
+
+
+
+-- NOT LUADOC
+-- The function converts a Lua value into its SQL representation, depending on the
+-- type of the specified field. Strings will be single-quoted (and single-quotes
+-- within will be properly escaped), numbers will be rendered properly, and such.
+function db:_coerce(field, value)
+   if field.type == &quot;number&quot; then
+      return tonumber(value) or &quot;'&quot;..value..&quot;'&quot;
+   elseif field.type == &quot;datetime&quot; then
+      if value._timestamp == false then
+         return &quot;NULL&quot;
+      else
+         return &quot;datetime('&quot;..value._timestamp..&quot;', 'unixepoch')&quot; or &quot;'&quot;..value..&quot;'&quot;
+      end
+   else
+      return &quot;'&quot;..tostring(value):gsub(&quot;'&quot;, &quot;''&quot;)..&quot;'&quot;
+   end
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is equal to the value.
+---
+--- @see db:fetch
+function db:eq(field, value, case_insensitive)
+   local fieldname = field.name
+   -- escape column names as per https://www.sqlite.org/lang_expr.html
+   fieldname = '&quot;'..fieldname:gsub(&quot;'&quot;, &quot;''&quot;)..'&quot;'
+   if case_insensitive then
+      local v = db:_coerce(field, value):lower()
+      return &quot;lower(&quot;..fieldname..&quot;) == &quot;..v
+   else
+      local v = db:_coerce(field, value)
+      return fieldname..&quot; == &quot;..v
+   end
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is NOT equal to the value.
+---
+--- @see db:fetch
+function db:not_eq(field, value, case_insensitive)
+   if case_insensitive then
+      local v = db:_coerce(field, value):lower()
+      return &quot;lower(&quot;..field.name..&quot;) != &quot;..v
+   else
+      local v = db:_coerce(field, value)
+      return field.name..&quot; != &quot;..v
+   end
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is less than the value.
+---
+--- @see db:fetch
+function db:lt(field, value)
+   local v = db:_coerce(field, value)
+   return field.name..&quot; &lt; &quot;..v
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is less than or equal to the value.
+---
+--- @see db:fetch
+function db:lte(field, value)
+   local v = db:_coerce(field, value)
+   return field.name..&quot; &lt;= &quot;..v
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is greater than to the value.
+---
+--- @see db:fetch
+function db:gt(field, value)
+   local v = db:_coerce(field, value)
+   return field.name..&quot; &gt; &quot;..v
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is greater than or equal to the value.
+---
+--- @see db:fetch
+function db:gte(field, value)
+   local v = db:_coerce(field, value)
+   return field.name..&quot; &gt;= &quot;..v
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is nil.
+---
+--- @see db:fetch
+function db:is_nil(field)
+   return field.name..&quot; IS NULL&quot;
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is not nil.
+---
+--- @see db:fetch
+function db:is_not_nil(field)
+   return field.name..&quot; IS NOT NULL&quot;
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet matches the specified pattern. &lt;br/&gt;&lt;br/&gt;
+---
+--- LIKE patterns are not case-sensitive, and allow two wild cards. The first is an underscore which matches
+--- any single one character. The second is a percent symbol which matches zero or more of any character.
+---   &lt;pre&gt;
+---   LIKE with &quot;_&quot; is therefore the same as the &quot;.&quot; regular expression.
+---   LIKE with &quot;%&quot; is therefore the same as &quot;.*&quot; regular expression.
+---   &lt;/pre&gt;
+---
+--- @see db:not_like
+--- @see db:fetch
+function db:like(field, value)
+   local v = db:_coerce(field, value)
+   return field.name..&quot; LIKE &quot;..v
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet does not match the specified pattern.
+---
+--- LIKE patterns are not case-sensitive, and allow two wild cards. The first is an underscore which matches
+--- any single one character. The second is a percent symbol which matches zero or more of any character.
+---   &lt;pre&gt;
+---   LIKE with &quot;_&quot; is therefore the same as the &quot;.&quot; regular expression.
+---   LIKE with &quot;%&quot; is therefore the same as &quot;.*&quot; regular expression.
+---   &lt;/pre&gt;
+---
+--- @see db:like
+--- @see db:fetch
+function db:not_like(field, value)
+   local v = db:_coerce(field, value)
+   return field.name..&quot; NOT LIKE &quot;..v
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is a value between lower_bound and upper_bound.
+--- This only really makes sense for numbers and Timestamps.
+---
+--- @see db:not_between
+--- @see db:fetch
+function db:between(field, left_bound, right_bound)
+   local x = db:_coerce(field, left_bound)
+   local y = db:_coerce(field, right_bound)
+   return field.name..&quot; BETWEEN &quot;..x..&quot; AND &quot;..y
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is NOT a value between lower_bound and upper_bound.
+--- This only really makes sense for numbers and Timestamps.
+---
+--- @see db:between
+--- @see db:fetch
+function db:not_between(field, left_bound, right_bound)
+   local x = db:_coerce(field, left_bound)
+   local y = db:_coerce(field, right_bound)
+   return field.name..&quot; NOT BETWEEN &quot;..x..&quot; AND &quot;..y
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is one of the values in the table array. &lt;br/&gt;&lt;br/&gt;
+---
+--- First, note the trailing underscore carefully! It is required.
+---
+--- @usage The following example illustrates the use of &lt;b&gt;in_&lt;/b&gt;:
+---   This will obtain all of your kills which happened in the Undervault, Hell or Purgatory. Every db:in_ expression
+---   can be written as a db:OR, but that quite often gets very complex.
+---   &lt;pre&gt;
+---   local mydb = db:get_database(&quot;my database&quot;)
+---   local areas = {&quot;Undervault&quot;, &quot;Hell&quot;, &quot;Purgatory&quot;}
+---   db:fetch(mydb.kills, db:in_(mydb.kills.area, areas))
+---   &lt;/pre&gt;
+---
+--- @see db:fetch
+function db:in_(field, tbl)
+   local parts = {}
+   for _, v in ipairs(tbl) do
+      parts[#parts+1] = db:_coerce(field, v)
+   end
+
+   return field.name..&quot; IN (&quot;..table.concat(parts, &quot;,&quot;)..&quot;)&quot;
+end
+
+
+
+--- Returns a database expression to test if the field in the sheet is not one of the values in the table array.
+---
+--- @see db:in_
+--- @see db:fetch
+function db:not_in(field, tbl)
+   local parts = {}
+   for _, v in ipairs(tbl) do
+      parts[#parts+1] = db:_coerce(field, v)
+   end
+
+   return field.name..&quot; NOT IN (&quot;..table.concat(parts, &quot;,&quot;)..&quot;)&quot;
+end
+
+
+
+--- Returns the string as-is to the database. &lt;br/&gt;&lt;br/&gt;
+---
+--- Use this function with caution, but it is very useful in some circumstances. One of the most
+--- common of such is incrementing an existing field in a db:set() operation, as so:
+---   &lt;pre&gt;
+---   db:set(mydb.enemies, db:exp(&quot;kills + 1&quot;), db:eq(mydb.enemies.name, &quot;Ixokai&quot;))
+---   &lt;/pre&gt;
+---
+--- This will increment the value of the kills field for the row identified by the name Ixokai. &lt;br/&gt;&lt;br/&gt;
+---
+--- But there are other uses, as the underlining database layer provides many functions you can call
+--- to do certain things. If you want to get a list of all your enemies who have a name longer then
+--- 10 characters, you may do:
+---   &lt;pre&gt;
+---   db:fetch(mydb.enemies, db:exp(&quot;length(name) &gt; 10&quot;))
+---   &lt;/pre&gt;
+---
+--- Again, take special care with this, as you are doing SQL syntax directly and the library can't
+--- help you get things right.
+---
+--- @see db:fetch
+function db:exp(text)
+   return text
+end
+
+
+
+--- Returns a compound database expression that combines all of the simple expressions passed into it.
+--- These expressions should be generated with other db: functions such as db:eq, db:like, db:lt and the like. &lt;br/&gt;&lt;br/&gt;
+---
+--- This compound expression will only find items in the sheet if all sub-expressions match.
+---
+--- @see db:fetch
+function db:AND(...)
+   local parts = {}
+
+   for _, expression in ipairs({...}) do
+      parts[#parts+1] = &quot;(&quot;..expression..&quot;)&quot;
+   end
+
+   return &quot;(&quot;..table.concat(parts, &quot; AND &quot;)..&quot;)&quot;
+end
+
+
+
+--- Returns a compound database expression that combines both of the simple expressions passed into it.
+--- These expressions should be generated with other db: functions such as db:eq, db:like, db:lt and the like. &lt;br/&gt;&lt;br/&gt;
+---
+--- This compound expression will find any item that matches either the first or the second sub-expression.
+---
+--- @see db:fetch
+function db:OR(left, right)
+   if not string.starts(left, &quot;(&quot;) then
+      left = &quot;(&quot;..left..&quot;)&quot;
+   end
+
+   if not string.starts(right, &quot;(&quot;) then
+      right = &quot;(&quot;..right..&quot;)&quot;
+   end
+
+   return left..&quot; OR &quot;..right
+end
+
+
+
+--- &lt;b&gt;&lt;u&gt;TODO&lt;/u&gt;&lt;/b&gt;
+function db:close()
+   for _, c in pairs(db.__conn) do
+      c:close()
+   end
+   db.__conn = {}
+   db.__env:close()
+   db.__env = nil
+end
+
+
+
+-- Timestamp support
+db.__Timestamp = {}
+
+
+
+db.__TimestampMT = {
+   __index = db.__Timestamp
+}
+
+
+function db.__Timestamp:as_string(format)
+   if not format then
+      format = &quot;%m-%d-%Y %H:%M:%S&quot;
+   end
+
+   -- given how we have an as_string function, having to wrap it in tostring() is a bit silly. So in this case, return nil as a string
+   if type(self._timestamp) ~= &quot;number&quot; then return &quot;nil&quot;, &quot;db.Timestamp:as_string: timestamp seems to be invalid and isn't a number&quot; end
+
+   return os.date(format, self._timestamp)
+end
+
+function db.__Timestamp:as_table()
+   if type(self._timestamp) ~= &quot;number&quot; then return nil, &quot;db.Timestamp:as_table: timestamp seems to be invalid and isn't a number&quot; end
+
+   return os.date(&quot;*t&quot;, self._timestamp)
+end
+
+function db.__Timestamp:as_number()
+   if type(self._timestamp) ~= &quot;number&quot; then return nil, &quot;db.Timestamp:as_number: timestamp seems to be invalid and isn't a number&quot; end
+
+   return self._timestamp
+end
+
+function db.__Timestamp:set(timestamp)
+   assert(type(timestamp) == &quot;number&quot;, &quot;db.Timestamp:set: timestamp needs to be a number&quot;)
+
+   self._timestamp = timestamp
+end
+
+
+--- &lt;b&gt;&lt;u&gt;TODO&lt;/u&gt;&lt;/b&gt;
+function db:Timestamp(ts, fmt)
+   local dt = {}
+   if type(ts) == &quot;table&quot; then
+      dt._timestamp = os.time(ts)
+   elseif type(ts) == &quot;number&quot; then
+      dt._timestamp = ts
+   elseif type(ts) == &quot;string&quot; and
+           assert(ts == &quot;CURRENT_TIMESTAMP&quot;, &quot;The only strings supported by db.DateTime:new is CURRENT_TIMESTAMP&quot;) then
+      dt._timestamp = &quot;CURRENT_TIMESTAMP&quot;
+   elseif ts == nil then
+      dt._timestamp = false
+   else
+      assert(nil, &quot;Invalid value passed to db.Timestamp()&quot;)
+   end
+   return setmetatable(dt, db.__TimestampMT)
+end
+
+
+
+db.Field = {}
+db.__FieldMT = {
+   __index = db.Field
+}
+
+
+
+db.Sheet = {}
+db.__SheetMT = {
+   __index = function(t, k)
+      local v = rawget(db.Sheet, k)
+      if v then
+         return v
+      end
+
+      local db_name = rawget(t, &quot;_db_name&quot;)
+      local sht_name = rawget(t, &quot;_sht_name&quot;)
+      local f_name = k
+
+      local errormsg = &quot;Attempt to access field %s in sheet %s in database %s that does not exist.&quot;
+
+      local field = db.__schema[db_name][sht_name]['columns'][f_name]
+      if assert(field, errormsg:format(k, sht_name, db_name)) then
+         type_ = type(field)
+         if type_ == &quot;table&quot; and field._timestamp then
+            type_ = &quot;datetime&quot;
+         end
+
+         rt = setmetatable({database=db_name, sheet=sht_name, type=type_, name=f_name}, db.__FieldMT)
+         rawset(t,k,rt)
+         return rt
+      end
+
+   end
+}
+
+
+
+db.Database = {}
+db.__DatabaseMT = {
+   __index = function(t, k)
+      local v = rawget(t, k)
+      if v then
+         return v
+      end
+
+      local v = rawget(db.Database, k)
+      if v then
+         return v
+      end
+
+      local db_name = rawget(t, &quot;_db_name&quot;)
+      if assert(db.__schema[db_name][k], &quot;Attempt to access sheet '&quot;..k..&quot;'in db '&quot;..db_name..&quot;' that does not exist.&quot;) then
+         rt = setmetatable({_db_name = db_name, _sht_name = k}, db.__SheetMT)
+         rawset(t,k,rt)
+         return rt
+      end
+   end
+}
+
+
+
+function db.Database:_begin()
+   db.__autocommit[self._db_name] = false
+end
+
+
+
+function db.Database:_commit()
+   local conn = db.__conn[self._db_name]
+   conn:commit()
+end
+
+
+
+function db.Database:_rollback()
+   local conn = db.__conn[self._db_name]
+   conn:rollback()
+end
+
+
+
+function db.Database:_end()
+   db.__autocommit[self._db_name] = true
+end
+
+
+
+function db.Database._drop(s_name)
+   local conn = db.__conn[self._db_name]
+   local schema = db.__schema[self._db_name]
+
+   if schema.options._index then
+      for _, value in schema.options._index do
+         conn:execute(&quot;DROP INDEX IF EXISTS &quot; .. db:_index_name(s_name, value))
+      end
+   end
+
+   if schema.options._unique then
+      for _, value in schema.options._unique do
+         conn:execute(&quot;DROP INDEX IF EXISTS &quot; .. db:_index_name(s_name, value))
+      end
+   end
+
+   conn:execute(&quot;DROP TABLE IF EXISTS &quot;..s_name)
+   conn:commit()
+end
+
+
+
+--- Returns a reference of an already existing database. This instance can be used to get references
+--- to the sheets (and from there, fields) that are defined within the database. You use these
+--- references to construct queries. &lt;br/&gt;&lt;br/&gt;
+---
+--- These references do not contain any actual data, they only point to parts of the database structure.
+---
+--- @usage If a database has a sheet named enemies, you can obtain a reference to that sheet by simply doing:
+---   &lt;pre&gt;
+---   local mydb = db:get_database(&quot;my database&quot;)
+---   local enemies_ref = mydb.enemies
+---   local name_ref = mydb.enemies.name
+---   &lt;/pre&gt;
+function db:get_database(db_name)
+   db_name = db:safe_name(db_name)
+   assert(db.__schema[db_name], &quot;Attempt to access database that does not exist.&quot;)
+
+   db_inst = {_db_name = db_name}
+   return setmetatable(db_inst, db.__DatabaseMT)
+end
+
+--- Queries for database content matching the given example. Different fields of
+--- the example are AND connected.
+--- &lt;/br&gt;
+--- Field values should be strings and can contain the following values:
+--- &lt;ul&gt;
+---   &lt;li&gt;literal strings to search for
+---   &lt;li&gt;comparison terms prepended with &amp;lt;, &amp;gt;, &amp;gt;=, &amp;lt;=, !=, &amp;lt;&amp;gt;
+---       for number and date comparisons
+---   &lt;li&gt;ranges with :: between lower and upper bound
+---   &lt;li&gt;different single values combined by || as OR
+---   &lt;li&gt;strings containing % for a single and _ for multiple wildcard
+---       characters
+--- &lt;/ul&gt;
+--- &lt;br/&gt;
+--- @param database Reference to the database that should be queried.
+--- @param example  Query prototype that should be searched for.
+--- @usage This example shows, how to use this function:
+---   &lt;pre&gt;
+---      mydb = db:create(&quot;mydb&quot;,
+---        {
+---          sheet = {
+---            name = &quot;&quot;, id = 0, city = &quot;&quot;,
+---            _index = { &quot;name&quot; },
+---            _unique = { &quot;id&quot; },
+---            _violations = &quot;FAIL&quot;
+---          }
+---        })
+---      test_data = {
+---        {name=&quot;Ixokai&quot;, city=&quot;Magnagora&quot;, id=1},
+---        {name=&quot;Vadi&quot;, city=&quot;New Celest&quot;, id=2},
+---        {name=&quot;Heiko&quot;, city=&quot;Hallifax&quot;, id=3},
+---        {name=&quot;Keneanung&quot;, city=&quot;Hashan&quot;, id=4},
+---        {name=&quot;Carmain&quot;, city=&quot;Mhaldor&quot;, id=5},
+---        {name=&quot;Ixokai&quot;, city=&quot;Hallifax&quot;, id=6},
+---      }
+---      db:add(mydb.sheet, unpack(test_data))
+---      res = db:query_by_example(mydb.sheet, { name = &quot;Ixokai&quot;})
+---      display(res)
+---      --[[
+---      Prints
+---      {
+---        {
+---          id = 1,
+---          name = &quot;Ixokai&quot;,
+---          city = &quot;Magnagora&quot;
+---        },
+---        {
+---          id = 6,
+---          name = &quot;Ixokai&quot;,
+---          city = &quot;Hallifax&quot;
+---        }
+---      }
+---      --]]
+---   &lt;/pre&gt;
+---
+--- @usage This example shows, how to combine two fields:
+---   &lt;pre&gt;
+---      mydb = db:create(&quot;mydb&quot;,
+---        {
+---          sheet = {
+---            name = &quot;&quot;, id = 0, city = &quot;&quot;,
+---            _index = { &quot;name&quot; },
+---            _unique = { &quot;id&quot; },
+---            _violations = &quot;FAIL&quot;
+---          }
+---        })
+---      test_data = {
+---        {name=&quot;Ixokai&quot;, city=&quot;Magnagora&quot;, id=1},
+---        {name=&quot;Vadi&quot;, city=&quot;New Celest&quot;, id=2},
+---        {name=&quot;Heiko&quot;, city=&quot;Hallifax&quot;, id=3},
+---        {name=&quot;Keneanung&quot;, city=&quot;Hashan&quot;, id=4},
+---        {name=&quot;Carmain&quot;, city=&quot;Mhaldor&quot;, id=5},
+---      }
+---      db:add(mydb.sheet, unpack(test_data))
+---      res = db:query_by_example(mydb.sheet, { name = &quot;Ixokai&quot;, id = &quot;1&quot;})
+---      display(res)
+---      --[[
+---      Prints
+---      {
+---        id = 1,
+---        name = &quot;Ixokai&quot;,
+---        city = &quot;Magnagora&quot;
+---      }
+---      --]]
+---   &lt;/pre&gt;
+function db:query_by_example(database, example)
+
+   if table.is_empty(example) then return nil end
+
+   local topLevel = {}
+   local find = string.find
+   local match = string.match
+
+   for key, value in pairs(example) do
+
+      value = string.trim(value)
+
+      local op, exp = match(value, &quot;^%s*([&lt;&gt;=!]*)%s*(.*)$&quot;)
+
+      if op == &quot;&lt;&quot; then
+         topLevel[#topLevel + 1] = db:lt(database[key], exp)
+      elseif op == &quot;&gt;&quot; then
+         topLevel[#topLevel + 1] = db:gt(database[key], exp)
+      elseif op == &quot;&gt;=&quot; then
+         topLevel[#topLevel + 1] = db:gte(database[key], exp)
+      elseif op == &quot;&lt;=&quot; then
+         topLevel[#topLevel + 1] = db:lte(database[key], exp)
+      elseif op == &quot;!=&quot; or op == &quot;&lt;&gt;&quot; then
+         if find(exp, &quot;__NULL__&quot;, 1, true) then
+            topLevel[#topLevel + 1] = db:is_not_nil(database[key])
+         else
+            topLevel[#topLevel + 1] = db:not_eq(database[key], exp)
+         end
+      else
+         if find(value, &quot;%s*||%s*&quot;) then
+            topLevel[#topLevel + 1] = db:in_(database[key], string.split(value,
+&quot;%s*||%s*&quot;))
+         elseif find(value, &quot;__NULL__&quot;, 1, true) then
+            topLevel[#topLevel + 1] = db:is_nil(database[key])
+         elseif find(value, &quot;_&quot;, 1, true) or find(value, &quot;%&quot;, 1, true) then
+            topLevel[#topLevel + 1] = db:like(database[key], value)
+         elseif find(value, &quot;::&quot;, 1, true) then
+            topLevel[#topLevel + 1] = db:between(database[key], match(value, &quot;^(.-)::(.+)$&quot;))
+         else
+            topLevel[#topLevel + 1] = db:eq(database[key], value)
+         end
+      end
+
+   end
+
+   return db:AND(unpack(topLevel))
+end
+
+end</script>
+                <eventHandlerList/>
+            </Script>
+            <Script isActive="yes" isFolder="no">
+                <name>init mpkg</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+mpkg = mpkg or { }
+mpkg.database = db:create(&quot;MudletPackageManager&quot;, {
+	repositories = {
+		name = &quot;&quot;,
+		url = &quot;&quot;,
+		description = &quot;&quot;,
+		_unique = {&quot;name&quot;},
+		_violations = &quot;REPLACE&quot;
+	},
+	packages = {
+		name = &quot;&quot;,
+		version = &quot;&quot;,
+		installed = &quot;&quot;,
+		url = &quot;&quot;,
+		description = &quot;&quot;,
+		author = &quot;&quot;,
+		repository = &quot;&quot;,
+		_index = { &quot;name&quot; }
+	}
+})
+
+mpkg.transaction = { }
+if db:aggregate(mpkg.database.packages.name, &quot;COUNT&quot;) == 0 then
+	db:add(mpkg.database.packages, {name = &quot;MudletPackageManager&quot;, version = &quot;0.0.1&quot;, installed = &quot;0.0.1&quot;, url = &quot;http://schova.de/mudlet-repository/MudletPackageManager.dat&quot;, author = &quot;keneanung&quot;,
+			description = &quot;The Mudlet Package Manager&quot;, repository = &quot;schova&quot; } )
+	db:add(mpkg.database.repositories, {name = &quot;schova&quot;, url = &quot;http://schova.de/mudlet-repository/index.php?op=json&quot;,
+			description = &quot;The Base repository.&quot; } )
+end</script>
+                <eventHandlerList/>
+            </Script>
+            <Script isActive="yes" isFolder="no">
+                <name>mpkg.finishedDownload</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+function mpkg.finishedDownload(event, file)
+	local fileName = file:match(&quot;.+/(.-)$&quot;)
+	if mpkg.transaction.type == &quot;update&quot; and
+		not table.is_empty(db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, {name = fileName})))
+	then
+
+		local filePointer = io.open(file, &quot;r&quot;)
+		local str = filePointer:read(&quot;*all&quot;)
+		local packages = yajl.to_value(str)
+
+		db:delete(mpkg.database.packages, db:AND(db:eq(mpkg.database.packages.repository, fileName), db:eq(mpkg.database.packages.installed, &quot;&quot;)))
+
+		for _, currentPackage in ipairs(packages) do
+
+			local knownPackage = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = currentPackage.name, repository = fileName}))[1]
+
+			if knownPackage then
+				knownPackage.version = currentPackage.version
+				knownPackage.url = currentPackage.url
+				knownPackage.description = currentPackage.description
+				db:update(mpkg.database.packages, knownPackage)
+			else
+				local ret, error = db:add(mpkg.database.packages, { name = currentPackage.name,
+						url = currentPackage.url,
+						version = currentPackage.version,
+						repository = fileName,
+						description = currentPackage.description, })
+				if not ret then
+					cecho(&quot;&lt;red&gt;Could not add new package. Reason: &quot; .. error .. &quot;\n&quot;)
+				end
+			end
+
+		end
+
+		cecho(&quot;&lt;green&gt;Package list of repository &quot; .. fileName .. &quot; updated.\n&quot;)
+		mpkg.transaction.argument = mpkg.transaction.argument - 1
+		if mpkg.transaction.argument == 0 then
+			cecho(&quot;&lt;green&gt;Finished updating package list.\n&quot;)
+			mpkg.transaction.type = nil
+		else
+			cecho(&quot;&lt;green&gt;Waiting for &quot; .. mpkg.transaction.argument .. &quot; more repository updates to finish.\n&quot;)
+		end
+
+	elseif mpkg.transaction.type == &quot;install&quot; and
+		mpkg.transaction.argument[1] == fileName
+	then
+
+		installPackage(file)
+
+		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName}))[1]
+
+		package.installed = package.version
+		db:update(mpkg.database.packages, package)
+
+		table.remove(mpkg.transaction.argument, 1)
+		if table.is_empty(mpkg.transaction.argument) then
+			cecho(&quot;&lt;green&gt;Finished installing package &quot; .. fileName .. &quot;.\n&quot;)
+			mpkg.transaction.type = nil
+		else
+			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
+		end
+
+	elseif mpkg.transaction.type == &quot;upgrade&quot; and
+		mpkg.transaction.argument[1].name == fileName
+	then
+
+		installPackage(file)
+
+		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName}))[1]
+
+		package.installed = package.version
+		db:update(mpkg.database.packages, package)
+
+		table.remove(mpkg.transaction.argument, 1)
+		if table.is_empty(mpkg.transaction.argument) then
+			cecho(&quot;&lt;green&gt;Finished installing package &quot; .. fileName .. &quot;.\n&quot;)
+			mpkg.transaction.type = nil
+		else
+			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
+			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. package[1].name, package[1].url)
+		end
+	end
+end</script>
+                <eventHandlerList>
+                    <string>sysDownloadDone</string>
+                </eventHandlerList>
+            </Script>
+            <Script isActive="yes" isFolder="no">
+                <name>mpkg.failedDownload</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+
+function mpkg.failedDownload(event, message, file)
+	local fileName = file:match(&quot;.+/(.-)$&quot;)
+	if mpkg.transaction.type == &quot;update&quot; and
+		not table.is_empty(db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, {name = fileName})))
+	then
+
+		cecho(&quot;&lt;red&gt;Package list of repository &quot; .. fileName .. &quot; could not be updated. Reason:\n&quot;)
+		echo(message .. &quot;\n&quot;)
+		mpkg.transaction.argument = mpkg.transaction.argument - 1
+		if mpkg.transaction.argument == 0 then
+			cecho(&quot;&lt;green&gt;Finished updating package list.\n&quot;)
+			mpkg.transaction.type = nil
+		else
+			cecho(&quot;&lt;green&gt;Waiting for &quot; .. mpkg.transaction.argument .. &quot; more repository updates to finish.\n&quot;)
+		end
+
+	elseif mpkg.transaction.type == &quot;install&quot; and
+		mpkg.transaction.argument[1] == fileName
+	then
+		cecho(&quot;&lt;red&gt;Could not install package &quot; .. fileName .. &quot;. Reason:\n&quot;)
+		echo(message .. &quot;\n&quot;)
+		if table.is_empty(mpkg.transaction.argument) then		
+			mpkg.transaction.type = nil
+		else
+			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
+		end
+
+	elseif mpkg.transaction.type == &quot;upgrade&quot; and
+		mpkg.transaction.argument[1].name == fileName
+	then
+		cecho(&quot;&lt;red&gt;Could not upgrade package &quot; .. fileName .. &quot;. Reason:\n&quot;)
+		echo(message .. &quot;\n&quot;)
+		if table.is_empty(mpkg.transaction.argument) then
+			cecho(&quot;&lt;green&gt;Finished installing package &quot; .. fileName .. &quot;.\n&quot;)
+			mpkg.transaction.type = nil
+		else
+			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
+			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. package[1].name, package[1].url)
+		end
+	end
+end</script>
+                <eventHandlerList>
+                    <string>sysDownloadError</string>
+                </eventHandlerList>
+            </Script>
+            <Script isActive="yes" isFolder="no">
+                <name>done loading</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+raiseEvent(&quot;mpkg done loading&quot;)</script>
+                <eventHandlerList/>
+            </Script>
+        </ScriptGroup>
+    </ScriptPackage>
+    <KeyPackage/>
+</MudletPackage>
