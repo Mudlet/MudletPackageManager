@@ -197,12 +197,12 @@ end
 if not mpkg.transaction.type then
 	cecho(&quot;&lt;green&gt;Installing package &quot; .. matches[2] .. &quot;.\n&quot;)
 	mpkg.transaction.type = &quot;install&quot;
-	mpkg.transaction.argument = { package[1].name }
+	mpkg.transaction.argument = { package[1].name .. &quot;.&quot; ..package[1].extension }
 else
 	cecho(&quot;&lt;red&gt;There is currently an &quot; .. mpkg.transaction.type .. &quot; in progress. Please wait for it to finish and try again.\n&quot;)
 	return
 end
-downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. package[1].name, package[1].url)</script>
+downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. package[1].name .. &quot;.&quot; .. package[1].extension, package[1].url)</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg install ([^\s]+?)$</regex>
@@ -2110,6 +2110,7 @@ mpkg.database = db:create(&quot;MudletPackageManager&quot;, {
 		description = &quot;&quot;,
 		author = &quot;&quot;,
 		repository = &quot;&quot;,
+		extension = &quot;&quot;,
 		_index = { &quot;name&quot; }
 	}
 })
@@ -2117,7 +2118,7 @@ mpkg.database = db:create(&quot;MudletPackageManager&quot;, {
 mpkg.transaction = { }
 if db:aggregate(mpkg.database.packages.name, &quot;COUNT&quot;) == 0 then
 	db:add(mpkg.database.packages, {name = &quot;MudletPackageManager&quot;, version = &quot;0.0.1&quot;, installed = &quot;0.0.1&quot;, url = &quot;http://schova.de/mudlet-repository/MudletPackageManager.dat&quot;, author = &quot;keneanung&quot;,
-			description = &quot;The Mudlet Package Manager&quot;, repository = &quot;schova&quot; } )
+			description = &quot;The Mudlet Package Manager&quot;, repository = &quot;schova&quot;, extension = &quot;xml&quot; } )
 	db:add(mpkg.database.repositories, {name = &quot;schova&quot;, url = &quot;http://schova.de/mudlet-repository/index.php?op=json&quot;,
 			description = &quot;The Base repository.&quot; } )
 end</script>
@@ -2132,7 +2133,8 @@ end</script>
 -- Note that you can also use external Scripts --
 -------------------------------------------------
 function mpkg.finishedDownload(event, file)
-	local fileName = file:match(&quot;.+/(.-)$&quot;)
+	local fileName = file:match(&quot;.+/(%w+)&quot;)
+	local fileNameExt = file:match(&quot;.+/(.-)$&quot;)
 	if mpkg.transaction.type == &quot;update&quot; and
 		not table.is_empty(db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, {name = fileName})))
 	then
@@ -2151,13 +2153,15 @@ function mpkg.finishedDownload(event, file)
 				knownPackage.version = currentPackage.version
 				knownPackage.url = currentPackage.url
 				knownPackage.description = currentPackage.description
+				knownPackage.extension = currentPackage.extension
 				db:update(mpkg.database.packages, knownPackage)
 			else
 				local ret, error = db:add(mpkg.database.packages, { name = currentPackage.name,
 						url = currentPackage.url,
 						version = currentPackage.version,
 						repository = fileName,
-						description = currentPackage.description, })
+						description = currentPackage.description,
+						extension = currentPackage.extension })
 				if not ret then
 					cecho(&quot;&lt;red&gt;Could not add new package. Reason: &quot; .. error .. &quot;\n&quot;)
 				end
@@ -2175,7 +2179,7 @@ function mpkg.finishedDownload(event, file)
 		end
 
 	elseif mpkg.transaction.type == &quot;install&quot; and
-		mpkg.transaction.argument[1] == fileName
+		mpkg.transaction.argument[1] == fileNameExt
 	then
 
 		installPackage(file)
@@ -2194,7 +2198,7 @@ function mpkg.finishedDownload(event, file)
 		end
 
 	elseif mpkg.transaction.type == &quot;upgrade&quot; and
-		mpkg.transaction.argument[1].name == fileName
+		mpkg.transaction.argument[1].name == fileNameExt
 	then
 
 		installPackage(file)
