@@ -12,33 +12,7 @@
             <regex></regex>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg help</name>
-                <script>cecho(&quot;&lt;green&gt;Help of the Mudlet Package Manager.\n&quot;)
-cecho(&quot;&lt;green&gt;The following commands are available:\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg help&lt;reset&gt;\n&quot;)
-cecho(&quot;    Displays this help text.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg repo add \&lt;name\&gt; \&lt;URL\&gt; \&lt;Description\&gt;&lt;reset&gt;\n&quot;)
-cecho(&quot;    Adds a new repository with name, URL annd description to the database of known repositories.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg repo list&lt;reset&gt;\n&quot;)
-cecho(&quot;    Lists all known repositories.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg repo info \&lt;pattern\&gt;&lt;reset&gt;\n&quot;)
-cecho(&quot;    Show the URL and description of the repositories matching the pattern.\n&quot;)
-cecho(&quot;    The pattern may contain '_' as single character wildcard and '%' for multiple characters.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg repo remove \&lt;pattern\&gt;&lt;reset&gt;\n&quot;)
-cecho(&quot;    Removes the matching repositories from the database.\n&quot;)
-cecho(&quot;    The pattern may contain '_' as single character wildcard and '%' for multiple characters.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg update&lt;reset&gt;\n&quot;)
-cecho(&quot;    Updates the list of available packages on all repositories.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg package list&lt;reset&gt;\n&quot;)
-cecho(&quot;    Lists all known packages.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg package info \&lt;pattern\&gt;&lt;reset&gt;\n&quot;)
-cecho(&quot;    Show the URL, version, repository name and description of the packages matching the pattern.\n&quot;)
-cecho(&quot;    The pattern may contain '_' as single character wildcard and '%' for multiple characters.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg install \&lt;name\&gt;&lt;reset&gt;\n&quot;)
-cecho(&quot;    Install the package. It might be necessary to specify a repository, if the package is in multiple.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg uninstall \&lt;name\&gt;&lt;reset&gt;\n&quot;)
-cecho(&quot;    Uninstall the package.\n&quot;)
-cecho(&quot;  &lt;orange&gt;mpkg upgrade&lt;reset&gt;\n&quot;)
-cecho(&quot;    Download and install the latest version of all installed packages.\n&quot;)
+                <script>mpkg.functions.printHelp()
 </script>
                 <command></command>
                 <packageName></packageName>
@@ -46,177 +20,109 @@ cecho(&quot;    Download and install the latest version of all installed package
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg repo add</name>
-                <script>local  newRepo = {
-	name = matches[2],
-	url = matches[3], 
-	description = matches[4]
-}
-local res, error = db:add(mpkg.database.repositories, newRepo)
-
-if res then
-	cecho(&quot;&lt;green&gt;Added new repository to database:\n&quot;)
-	cecho(&quot;  &lt;orange&gt;name&lt;reset&gt;: &quot; .. newRepo.name .. &quot;\n&quot;)
-	cecho(&quot;  &lt;orange&gt;URL&lt;reset&gt;: &quot; .. newRepo.url .. &quot;\n&quot;)
-	cecho(&quot;  &lt;orange&gt;Description&lt;reset&gt;: &quot; .. newRepo.description .. &quot;\n&quot;)
-else
-	cecho(&quot;&lt;red&gt;Couldn't add repository to database. Reason:\n&quot;)
-	cecho(error)
-end
-</script>
+                <script>mpkg.functions.addRepo(matches[2], matches[3], matches[4])</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg repo add (.+?) (.+?) (.*)$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg repo list</name>
-                <script>local repoList = db:fetch(mpkg.database.repositories)
-cecho(&quot;&lt;green&gt;List of all known repositories:\n&quot;)
-for _, repo in ipairs(repoList) do
-	cecho(string.format(&quot;  &lt;orange&gt;%s&lt;reset&gt; (%s)\n&quot;, repo.name, repo.url))
-end</script>
+                <script>mpkg.functions.listRepos()</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg repo list$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg repo info</name>
-                <script>local foundRepositories = db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, { name = matches[2] } ))
-if #foundRepositories &gt; 0 then
-	for _, repo in ipairs(foundRepositories) do
-		cecho(&quot;&lt;green&gt;&quot; .. repo.name .. &quot;:\n&quot;)
-		cecho(&quot;  &lt;orange&gt;URL&lt;reset&gt;: &quot; .. repo.url .. &quot;\n&quot;)
-		cecho(&quot;  &lt;orange&gt;Description&lt;reset&gt;: &quot; .. repo.description .. &quot;\n&quot;)
-	end
-else
-	cecho(&quot;&lt;green&gt;No repositories matching the pattern '&quot; .. matches[2] .. &quot;' found.&quot;)
-end</script>
+                <script>mpkg.functions.repoInfo(matches[2])</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg repo info (.+)$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg repo remove</name>
-                <script>local foundRepositories = db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, { name = matches[2] } ))
-if #foundRepositories &gt; 0 then
-	for _, repo in ipairs(foundRepositories) do
-		cecho(&quot;&lt;green&gt;Removing repository &lt;orange&gt;&quot; .. repo.name .. &quot;.\n&quot;)
-		db:delete(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, { name = repo.name } ))
-	end
-else
-	cecho(&quot;&lt;green&gt;No repositories matching the pattern '&quot; .. matches[2] .. &quot;' found.&quot;)
-end</script>
+                <script>mpkg.functions.deleteRepo(matches[2])</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg repo remove (.+)$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg update</name>
-                <script>if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg&quot;) then
-	local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg&quot;)
-	assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))	
-end
-if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg/cache&quot;) then
-	local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg/cache&quot;)
-	assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))
-end
-local repositories = db:fetch(mpkg.database.repositories)
-if not mpkg.transaction.type then
-	cecho(&quot;&lt;green&gt;Updating the list of available packages.\n&quot;)
-	mpkg.transaction.type = &quot;update&quot;
-	mpkg.transaction.argument = #repositories
-else
-	cecho(&quot;&lt;red&gt;There is currently an &quot; .. mpkg.transaction.type .. &quot; in progress. Please wait for it to finish and try again.\n&quot;)
-	return
-end
-for _, repository in ipairs(repositories) do
-	downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. repository.name, repository.url)
-end</script>
+                <script>mpkg.functions.update()</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg update$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg package list</name>
-                <script>local packageList = db:fetch(mpkg.database.packages)
-cecho(&quot;&lt;green&gt;List of all known packages:\n&quot;)
-for _, package in ipairs(packageList) do
-	cecho(string.format(&quot;  &lt;orange&gt;%s (%s) &lt;reset&gt;from %s %s\n&quot;, package.name, package.version, package.repository, package.installed ~= &quot;&quot; and &quot;&lt;green&gt;installed&quot; or &quot;&quot;))
-end</script>
+                <script>mpkg.functions.packageList()</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg package list$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg package info</name>
-                <script>local foundPackages = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2] } ))
-if #foundPackages &gt; 0 then
-	for _, pkg in ipairs(foundPackages) do
-		cecho(&quot;&lt;green&gt;&quot; .. pkg.name .. &quot;:\n&quot;)
-		cecho(&quot;  &lt;orange&gt;Repository&lt;reset&gt;: &quot; .. pkg.repository .. &quot;\n&quot;)
-		cecho(&quot;  &lt;orange&gt;Version&lt;reset&gt;: &quot; .. pkg.version .. &quot;\n&quot;)
-		cecho(&quot;  &lt;orange&gt;Installed Version&lt;reset&gt;: &quot; .. (pkg.installed ~= &quot;&quot; and pkg.installed or &quot;none&quot;) .. &quot;\n&quot;)
-		cecho(&quot;  &lt;orange&gt;Description&lt;reset&gt;: &quot; .. pkg.description .. &quot;\n&quot;)
-	end
-else
-	cecho(&quot;&lt;green&gt;No repositories matching the pattern '&quot; .. matches[2] .. &quot;' found.&quot;)
-end</script>
+                <script>mpkg.functions.packageInfo(matches[2])</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg package info (.+)$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg install</name>
-                <script>local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2] } ))
+                <script>local packageList = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2], installed = &quot;!=&quot; } ))
 
-if #package &gt; 1 then
-	cecho(&quot;&lt;orange&gt;More than one package found with name &quot; .. matches[2] .. &quot;. Please be more specific, which package you want to install.\n&quot;)
+if not table.is_empty(packageList) then
+	cecho(&quot;&lt;orange&gt;Package '&quot; .. matches[2] ..&quot;' is already installed.\n&quot;)
 	return
 end
 
-if package[1].installed ~= &quot;&quot; then
+packageList = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2] } ))
 
-	if package[1].version == package[1].installed then
-		cecho(&quot;&lt;green&gt;Package &quot; .. matches[2] .. &quot; already installed at the latest version.\n&quot;)
-		return
-	else
-		cecho(&quot;&lt;orange&gt;Package &quot; .. matches[2] .. &quot; already installed. You may want to upgrade instead.\n&quot;)
-		return
-	end
-
+if table.is_empty(packageList) then
+	cecho(&quot;&lt;orange&gt;Package with name &quot; .. matches[2] .. &quot; unknown.\n&quot;)
+	return
 end
 
-if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg&quot;) then
-	local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg&quot;)
-	assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))	
-end
-if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg/cache&quot;) then
-	local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg/cache&quot;)
-	assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))
+local success, package = mpkg.functions.bestCandidate(packageList)
+
+if not success then
+	cecho(&quot;&lt;orange&gt;&quot; .. package .. &quot;\n&quot;)
+	return
 end
 
-if not mpkg.transaction.type then
-	cecho(&quot;&lt;green&gt;Installing package &quot; .. matches[2] .. &quot;.\n&quot;)
-	mpkg.transaction.type = &quot;install&quot;
-	mpkg.transaction.argument = { package[1].name .. &quot;.&quot; ..package[1].extension }
-else
+local error
+success, error = mpkg.functions.checkCache()
+
+if not success then
+	cecho(mpkg.templates.errorTemplate:format(&quot;Unable to create cache directory:&quot;))
+	cecho(error)
+	return
+end
+
+if mpkg.transaction.type then
 	cecho(&quot;&lt;red&gt;There is currently an &quot; .. mpkg.transaction.type .. &quot; in progress. Please wait for it to finish and try again.\n&quot;)
 	return
 end
-downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. package[1].name .. &quot;.&quot; .. package[1].extension, package[1].url)</script>
+cecho(&quot;&lt;green&gt;Installing package &quot; .. matches[2] .. &quot;.\n&quot;)
+mpkg.transaction.type = &quot;install&quot;
+mpkg.transaction.argument = { { name = package.name .. &quot;.&quot; ..package.extension, url = package.url} }
+mpkg.functions.checkDependencies(package.name, package.repository, mpkg.transaction.argument)
+display(mpkg.transaction.argument)
+downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)</script>
                 <command></command>
                 <packageName></packageName>
                 <regex>^mpkg install ([^\s]+?)$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg uninstall</name>
-                <script>local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2], repository = matches[3] } ))
+                <script>local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = matches[2], installed = &quot;!=&quot; } ))
 
 if #package &gt; 1 then
 	cecho(&quot;&lt;orange&gt;More than one package found with name &quot; .. matches[2] .. &quot;. Please be more specific, which package you want to uninstall.\n&quot;)
 	return
 end
 
-if package[1].installed == &quot;&quot; then
+if table.is_empty(package) then
 
 	cecho(&quot;&lt;orange&gt;Package &quot; .. matches[2] .. &quot; not installed.\n&quot;)
 	return
@@ -231,39 +137,40 @@ db:update(mpkg.database.packages, package[1])
 cecho(&quot;&lt;green&gt;Finished uninstalling package &quot; .. matches[2] .. &quot;.\n&quot;)</script>
                 <command></command>
                 <packageName></packageName>
-                <regex>^mpkg uninstall ([^\s]+?)(?: (.+)|)$</regex>
+                <regex>^mpkg uninstall ([^\s]+)$</regex>
             </Alias>
             <Alias isActive="yes" isFolder="no">
                 <name>mpkg upgrade</name>
-                <script>local packages = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {installed = &quot;!=&quot;}))
-for _, package in ipairs(packages) do
-	local installed = package.installed:split(&quot;%.&quot;)
-	local version = package.version:split(&quot;%.&quot;)
-	if not (tonumber(installed[1]) &gt; tonumber(version[1]) or tonumber(installed[2]) &gt; tonumber(version[2]) or tonumber(installed[3]) &gt; tonumber(version[3])) then
-		if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg&quot;) then
-			local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg&quot;)
-			assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))	
+                <script>local installedPackages = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {installed = &quot;!=&quot;}))
+display(packages)
+local success, error = mpkg.functions.checkCache()
+if not success then
+	cecho(mpkg.templates.errorTemplate:format(&quot;Unable to create cache directory:&quot;))
+	cecho(error)
+	return
+end
+if mpkg.transaction.type then
+	cecho(&quot;&lt;red&gt;There is currently an &quot; .. mpkg.transaction.type .. &quot; in progress. Please wait for it to finish and try again.\n&quot;)
+	return
+end
+mpkg.transaction.argument = {}
+for _, installedPackage in ipairs(installedPackages) do
+	local samePackages = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, { name = installedPackage.name } ))
+	local candidate = { reference = installedPackage.installed }
+	for _, package in ipairs(samePackages) do
+		if mpkg.functions.greaterVersion(candidate.reference, package.version) then
+			candidate.best = package
+			candidate.reference = package.version
 		end
-		if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg/cache&quot;) then
-			local success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg/cache&quot;)
-			assert(success, &quot;Unable to create cache directory: &quot; .. (error or &quot;&quot;))
-		end
-
-		if not mpkg.transaction.type then
-			cecho(&quot;&lt;green&gt;Staging package &quot; .. package.name .. &quot;for upgrade to version &quot; .. package.version .. &quot;.\n&quot;)
-			mpkg.transaction.type = &quot;upgrade&quot;
-			mpkg.transaction.argument = {}
-			mpkg.transaction.argument[#mpkg.transaction.argument+1] = { name = package.name, url = package.url }
-		else
-			cecho(&quot;&lt;red&gt;There is currently an &quot; .. mpkg.transaction.type .. &quot; in progress. Please wait for it to finish and try again.\n&quot;)
-			return
-		end
-	else
-		cecho(&quot;&lt;green&gt;No packages to upgrade.\n&quot;)
 	end
-
-	downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. packages[1].name, packages[1].url)
-
+	if candidate.best then
+			cecho(&quot;&lt;green&gt;Staging package &quot; .. candidate.best.name .. &quot; for upgrade to version &quot; .. candidate.best.version .. &quot;.\n&quot;)
+			mpkg.transaction.type = &quot;upgrade&quot;
+			mpkg.transaction.argument[#mpkg.transaction.argument+1] = { name = candidate.best.name, url = candidate.best.url }
+	end
+end
+if #mpkg.transaction.argument &gt; 0 then
+	downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
 end</script>
                 <command></command>
                 <packageName></packageName>
@@ -2112,6 +2019,12 @@ mpkg.database = db:create(&quot;MudletPackageManager&quot;, {
 		repository = &quot;&quot;,
 		extension = &quot;&quot;,
 		_index = { &quot;name&quot; }
+	},
+	dependencies = {
+		name = &quot;&quot;,
+		dependency = &quot;&quot;,
+		repository = &quot;&quot;,
+		_index = { &quot;name&quot; }
 	}
 })
 
@@ -2122,6 +2035,20 @@ if db:aggregate(mpkg.database.packages.name, &quot;COUNT&quot;) == 0 then
 	db:add(mpkg.database.repositories, {name = &quot;schova&quot;, url = &quot;http://schova.de/mudlet-repository/index.php?op=json&quot;,
 			description = &quot;The Base repository.&quot; } )
 end</script>
+                <eventHandlerList/>
+            </Script>
+            <Script isActive="yes" isFolder="no">
+                <name>config</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+mpkg.config = {
+	locale = &quot;en-US&quot;
+}
+</script>
                 <eventHandlerList/>
             </Script>
             <Script isActive="yes" isFolder="no">
@@ -2167,6 +2094,16 @@ function mpkg.finishedDownload(event, file)
 				end
 			end
 
+			db:delete(mpkg.database.dependencies, db:query_by_example(mpkg.database.dependencies, {name = currentPackage.name, repository = fileName}))
+			currentPackage.dependencies = currentPackage.dependencies or {}
+
+			for _, dependency in ipairs(currentPackage.dependencies) do
+				db:add(mpkg.database.dependencies, { 
+					name = currentPackage.name,
+					dependency = dependency.name,
+					repository = fileName })
+			end
+
 		end
 
 		cecho(&quot;&lt;green&gt;Package list of repository &quot; .. fileName .. &quot; updated.\n&quot;)
@@ -2179,12 +2116,12 @@ function mpkg.finishedDownload(event, file)
 		end
 
 	elseif mpkg.transaction.type == &quot;install&quot; and
-		mpkg.transaction.argument[1] == fileNameExt
+		mpkg.transaction.argument[1].name == fileNameExt
 	then
-
+		uninstallPackage(fileName)
 		installPackage(file)
 
-		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName}))[1]
+		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName, url = mpkg.transaction.argument[1].url}))[1]
 
 		package.installed = package.version
 		db:update(mpkg.database.packages, package)
@@ -2195,6 +2132,7 @@ function mpkg.finishedDownload(event, file)
 			mpkg.transaction.type = nil
 		else
 			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
+			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
 		end
 
 	elseif mpkg.transaction.type == &quot;upgrade&quot; and
@@ -2203,7 +2141,7 @@ function mpkg.finishedDownload(event, file)
 
 		installPackage(file)
 
-		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName}))[1]
+		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName, url = mpkg.transaction.argument[1].url}))[1]
 
 		package.installed = package.version
 		db:update(mpkg.database.packages, package)
@@ -2214,7 +2152,7 @@ function mpkg.finishedDownload(event, file)
 			mpkg.transaction.type = nil
 		else
 			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
-			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. package[1].name, package[1].url)
+			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
 		end
 	end
 end</script>
@@ -2248,14 +2186,17 @@ function mpkg.failedDownload(event, message, file)
 		end
 
 	elseif mpkg.transaction.type == &quot;install&quot; and
-		mpkg.transaction.argument[1] == fileName
+		mpkg.transaction.argument[1].name == fileName
 	then
 		cecho(&quot;&lt;red&gt;Could not install package &quot; .. fileName .. &quot;. Reason:\n&quot;)
 		echo(message .. &quot;\n&quot;)
-		if table.is_empty(mpkg.transaction.argument) then		
+		table.remove(mpkg.transaction.argument, 1)
+		if table.is_empty(mpkg.transaction.argument) then
+			cecho(&quot;&lt;red&gt;Failed to install package '&quot; .. fileName .. &quot;'.\n&quot;)
 			mpkg.transaction.type = nil
 		else
 			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
+			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
 		end
 
 	elseif mpkg.transaction.type == &quot;upgrade&quot; and
@@ -2263,18 +2204,420 @@ function mpkg.failedDownload(event, message, file)
 	then
 		cecho(&quot;&lt;red&gt;Could not upgrade package &quot; .. fileName .. &quot;. Reason:\n&quot;)
 		echo(message .. &quot;\n&quot;)
+		table.remove(mpkg.transaction.argument, 1)
 		if table.is_empty(mpkg.transaction.argument) then
-			cecho(&quot;&lt;green&gt;Finished installing package &quot; .. fileName .. &quot;.\n&quot;)
+			cecho(&quot;&lt;red&gt;Failed to upgrade package '&quot; .. fileName .. &quot;'.\n&quot;)
 			mpkg.transaction.type = nil
 		else
 			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
-			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. package[1].name, package[1].url)
+			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
 		end
 	end
 end</script>
                 <eventHandlerList>
                     <string>sysDownloadError</string>
                 </eventHandlerList>
+            </Script>
+            <Script isActive="yes" isFolder="no">
+                <name>functions</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+mpkg.functions = {
+
+	checkCache = function()
+		local success, error = true, &quot;&quot;
+		if not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg&quot;) then
+			success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg&quot;)
+		end
+		if success and not lfs.attributes(getMudletHomeDir() .. &quot;/mpkg/cache&quot;) then
+			success, error = lfs.mkdir(getMudletHomeDir() .. &quot;/mpkg/cache&quot;)
+		end
+		return success, error
+	end,
+
+	checkDependencies = function(name, repository, queue)
+
+		local dependencyTable	= mpkg.database.dependencies
+		local packageTable		= mpkg.database.packages
+
+		local functions				= mpkg.functions
+		local checkDependencies	= functions.checkDependencies
+		local fetchByExample		= functions.fetchByExample
+		local bestCandidate		= functions.bestCandidate
+
+		local dependencies = fetchByExample(dependencyTable, { name = name, repository = repositoy })
+
+		for _, dep in ipairs(dependencies) do
+			local installedDependency = fetchByExample(packageTable, { name = dep.dependency, installed = &quot;!=&quot; })
+
+			if table.is_empty(installedDependency) then
+				local success, dependencyPackage = bestCandidate(fetchByExample(packageTable, { name = dep.dependency }))
+
+				if success then
+					local found
+					local filename = string.format(&quot;%s.%s&quot;, dependencyPackage.name, dependencyPackage.extension)
+					for _, queueItem in ipairs(queue) do
+						if queueItem.name == filename then
+							found = true
+						end
+					end
+					if not found then
+						table.insert(queue, 1, {name = filename, url= dependencyPackage.url})
+						checkDependencies(dependencyPackage.name, dependencyPackage.repository, queue)
+					end
+				end
+			end
+		end
+	end,
+
+	bestCandidate = function(packageList)
+
+		local localization	= mpkg.localization[mpkg.config.locale]
+		local locGeneral	= localization.general
+		local locPackage	= localization.package
+
+		if not packageList or type(packageList)~=&quot;table&quot; then
+			return false, locGeneral.invalidParameterType:format(&quot;packageList&quot;, type(packageList), &quot;table&quot;)
+		end
+
+		if table.is_empty(packageList) then
+			return false, locGeneral.emptyTable
+		end
+
+		local bestPackage = packageList[1]
+
+		for _, package in ipairs(packageList) do
+			if package.name ~= bestPackage.name then
+				return false, locPackage.nameMismatch
+			end
+			if mpkg.functions.greaterVersion(bestPackage.version, package.version) then
+				bestPackage = package
+			end
+		end
+		return true, bestPackage
+	end,
+
+	greaterVersion = function(baseVersion, newVersion)
+		local base = baseVersion:split(&quot;%.&quot;)
+		local new = newVersion:split(&quot;%.&quot;)
+		if tonumber(base[1]) &lt; tonumber(new[1]) or tonumber(base[2]) &lt; tonumber(new[2]) or tonumber(base[3]) &lt; tonumber(new[3]) then
+			return true
+		end
+		return false
+	end,
+
+	printHelp = function()
+		local help = mpkg.localization[mpkg.config.locale].help
+		local templates = mpkg.templates
+		local header = templates.headerTemplate
+		local command = templates.commandHelpTemplate
+		local description = templates.helpDescriptionTemplate
+
+		for _, headerEntry in ipairs(help.headers) do
+			cecho(header:format(headerEntry))
+		end
+		for _, helpEntry in ipairs(help.entries) do
+			cecho(command:format(helpEntry.command))
+			for _, descriptionLine in ipairs(helpEntry.description) do
+				cecho(description:format(descriptionLine))
+			end
+		end
+	end,
+
+	addRepo = function(name, url, description)
+
+		local templates		= mpkg.templates
+		local propTemplate	= templates.propertyLineTemplate
+
+		local localized		= mpkg.localization[mpkg.config.locale]
+		local locGeneral	= localized.general
+		local locRepo		= localized.repo
+
+		local  newRepo = {
+			name = name,
+			url = url, 
+			description = description
+		}
+
+		local res, error = db:add(mpkg.database.repositories, newRepo)
+
+		if res then
+			cecho(templates.headerTemplate:format(locRepo.successfullAddMessage))
+			cecho(propTemplate:format(locGeneral.name, newRepo.name))
+			cecho(propTemplate:format(locGeneral.url, newRepo.url))
+			cecho(propTemplate:format(locGeneral.description, newRepo.description))
+		else
+			cecho(templates.errorTemplate:format(locRepo.addError))
+			cecho(error)
+		end
+	end,
+
+	fetchByExample = function(dbTable, example)
+		return db:fetch(dbTable, db:query_by_example(dbTable, example))
+	end,
+
+	listRepos = function()
+		local repoList = db:fetch(mpkg.database.repositories)
+		cecho(mpkg.templates.headerTemplate:format(mpkg.localization[mpkg.config.locale].repo.listHeader))
+		for _, repo in ipairs(repoList) do
+			cecho(mpkg.templates.propertyLineTemplate:format(repo.name, repo.url))
+		end
+	end,
+
+	repoInfo = function(pattern)
+
+		local templates			= mpkg.templates
+		local propTemplate		= templates.propertyLineTemplate
+		local headerTemplate	= templates.headerTemplate
+
+		local localized		= mpkg.localization[mpkg.config.locale]
+		local locGeneral	= localized.general
+
+		local foundRepositories = mpkg.functions.fetchByExample(mpkg.database.repositories, { name = pattern } )
+		if #foundRepositories &gt; 0 then
+			for _, repo in ipairs(foundRepositories) do
+				cecho(headerTemplate:format(repo.name))
+				cecho(propTemplate:format(locGeneral.url, repo.url))
+				cecho(propTemplate:format(locGeneral.description, repo.description))
+			end
+		else
+			cecho(headerTemplate:format(localized.repo.notFound:format(pattern)))
+		end
+	end,
+
+	deleteRepo = function(pattern)
+
+		local headerTemplate	= mpkg.templates.headerTemplate
+
+		local locRepo		= mpkg.localization[mpkg.config.locale].repo
+
+		local foundRepositories = mpkg.functions.fetchByExample(mpkg.database.repositories, { name = pattern } )
+		if #foundRepositories &gt; 0 then
+			for _, repo in ipairs(foundRepositories) do
+				db:delete(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, { name = repo.name } ))
+				cecho(headerTemplate:format(locRepo.removeSuccessful:format(repo.name)))
+			end
+		else
+			cecho(headerTemplate:format(locRepo.notFound:format(pattern)))
+		end
+	end,
+
+	update = function()
+
+		local templates			= mpkg.templates
+		local errorTemplate	= templates.errorTemplate
+
+		local localized		= mpkg.localization[mpkg.config.locale]
+		local locGeneral	= localized.general
+
+		local success, error = mpkg.functions.checkCache()
+		if not success then
+			cecho(errorTemplate:format(locGeneral.cacheCreationFailed))
+			cecho(error)
+			return
+		end
+		local repositories = db:fetch(mpkg.database.repositories)
+		if not mpkg.transaction.type then
+			cecho(templates.headerTemplate:format(localized.repo.updateStart))
+			mpkg.transaction.type = &quot;update&quot;
+			mpkg.transaction.argument = #repositories
+		else
+			cecho(errorTemplate:format(locGeneral.alreadyProcessing:format(mpkg.transaction.type)))
+			return
+		end
+		for _, repository in ipairs(repositories) do
+			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. repository.name, repository.url)
+		end
+	end,
+
+	packageList = function()
+
+		local templates					= mpkg.templates
+		local packageListTemplate	=templates.packageListTemplate
+		local localized					= mpkg.localization[mpkg.config.locale]
+		local locInstalled				= localized.general.installed
+
+		local packageList = db:fetch(mpkg.database.packages)
+		cecho(templates.headerTemplate:format(localized.package.listHeader))
+		for _, package in ipairs(packageList) do
+			cecho(packageListTemplate:format(package.name, package.version, 
+					package.repository, package.installed ~= &quot;&quot; and locInstalled or &quot;&quot;))
+		end
+	end,
+
+	packageInfo = function(name)
+
+		local fetchByExample = mpkg.functions.fetchByExample
+
+		local templates			= mpkg.templates
+		local propertyLine		= templates.propertyLineTemplate
+		local headerTemplate	= templates.headerTemplate
+
+		local localized		= mpkg.localization[mpkg.config.locale]
+		local locGeneral	= localized.general
+
+		local foundPackages = fetchByExample(mpkg.database.packages, { name = name } )
+		if #foundPackages &gt; 0 then
+			for _, pkg in ipairs(foundPackages) do
+				local dependencies = fetchByExample(mpkg.database.dependencies, { name = pkg.name } )
+				cecho(headerTemplate:format(pkg.name))
+				cecho(propertyLine:format(locGeneral.repository, pkg.repository))
+				cecho(propertyLine:format(locGeneral.version, pkg.version))
+				cecho(propertyLine:format(locGeneral.installedVersion , pkg.installed ~= &quot;&quot; and pkg.installed or locGeneral.none))
+				cecho(propertyLine:format(locGeneral.description, pkg.description))
+				local dependencyString = &quot;&quot;
+				for num, dep in ipairs(dependencies) do
+					dependencyString = dependencyString .. (num &gt; 1 and &quot;, &quot; or &quot;&quot;) .. dep.dependency
+				end
+				cecho(propertyLine:format(locGeneral.dependencies, dependencyString))
+			end
+		else
+			cecho(headerTemplate:format(localized.package.notFound:format(name)))
+		end
+	end,
+}</script>
+                <eventHandlerList/>
+            </Script>
+            <Script isActive="yes" isFolder="no">
+                <name>templates</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+mpkg.templates = {
+	headerTemplate					= &quot;&lt;green&gt;%s&lt;reset&gt;\n&quot;,												--template for headers
+	propertyLineTemplate			= &quot;  &lt;orange&gt;%s:&lt;reset&gt; %s\n&quot;,										--template for detailed information 
+																													--on one line. First argument is the 
+																													--property, second its value
+
+	commandHelpTemplate			= &quot;  &lt;orange&gt;%s&lt;reset&gt;\n&quot;,											--help template for commands
+	helpDescriptionTemplate		= &quot;    %s\n&quot;,															--help template for the descriptions
+																													--of a command
+
+	errorTemplate					= &quot;&lt;red&gt;%s&lt;reset&gt;\n&quot;,													--template for error messages
+	packageListTemplate			= &quot;  &lt;orange&gt;%s (%s) &lt;reset&gt;from %s &lt;green&gt;%s&lt;reset&gt;\n&quot;,		--template for a line in the package
+																													--list
+}</script>
+                <eventHandlerList/>
+            </Script>
+            <Script isActive="yes" isFolder="no">
+                <name>localization</name>
+                <packageName></packageName>
+                <script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external Scripts --
+-------------------------------------------------
+mpkg.localization = {
+
+	[&quot;en-US&quot;] = {
+
+		help = {
+			headers = {
+				&quot;Help of the Mudlet Package Manager.&quot;,
+				&quot;The following commands are available:&quot;
+			},
+
+			entries = {
+
+				{ 
+					command     = &quot;mpkg help&quot;,
+					description = {&quot;Displays this help text.&quot;}
+				},
+				{
+					command     = &quot;mpkg repo add \&lt;name\&gt; \&lt;URL\&gt; \&lt;Description\&gt;&quot;,
+					description = {&quot;Adds a new repository with name, URL annd description to the database of known repositories.&quot;}
+				},
+				{
+					command     = &quot;mpkg repo list&quot;,
+					description = {&quot;Lists all known repositories.&quot;}
+				},
+				{
+					command     = &quot;mpkg repo info \&lt;pattern\&gt;&quot;,
+					description = {
+						&quot;Show the URL and description of the repositories matching the pattern.&quot;,
+						&quot;The pattern may contain '_' as single character wildcard and '%' for multiple characters.&quot;
+					},
+				},
+				{
+					command     = &quot;mpkg repo remove \&lt;pattern\&gt;&quot;,
+					description = {
+						&quot;Removes the matching repositories from the database.&quot;,
+						&quot;The pattern may contain '_' as single character wildcard and '%' for multiple characters.&quot;
+					},
+				},
+				{
+					command     = &quot;mpkg update&quot;,
+					description = {&quot;Updates the list of available packages on all repositories.&quot;}
+				},
+				{
+					command     = &quot;mpkg package list&quot;,
+					description = {&quot;Lists all known packages.&quot;}
+				},
+				{
+					command     = &quot;mpkg package info \&lt;pattern\&gt;&quot;,
+					description = {
+						&quot;Show the URL, version, repository name and description of the packages matching the pattern.&quot;,
+						&quot;The pattern may contain '_' as single character wildcard and '%' for multiple characters.&quot;
+					},
+				},
+				{
+					command     = &quot;mpkg install \&lt;name\&gt;&quot;,
+					description = {&quot;Install the package. This will always install the latest version of the package with that name found.&quot;}
+				},
+				{
+					command     = &quot;mpkg uninstall \&lt;name\&gt;&quot;,
+					description = {&quot;Uninstall the package.&quot;}
+				},
+				{
+					command     = &quot;mpkg upgrade&quot;,
+					description = {&quot;Download and install the latest version of all installed packages.&quot;}
+				},
+			},
+
+		},
+
+		general	= {
+			name						= &quot;Name&quot;,
+			url							= &quot;URL&quot;,
+			description				= &quot;Description&quot;,
+			invalidParameterType	= &quot;Invalid parameter %s. Got '%s', expected '%s'.&quot;,
+			emptyTable				= &quot;Table is empty.&quot;,
+			cacheCreationFailed	= &quot;Unable to create cache directory:&quot;,
+			alreadyProcessing		= &quot;There is currently an %s in progress. Please wait for it to finish and try again.&quot;,
+			installed					= &quot;installed&quot;,
+			none						= &quot;none&quot;,
+			despendencies			= &quot;Dependencies&quot;,
+			repository				= &quot;Repository&quot;,
+			version					= &quot;Version&quot;,
+			installedVersion		= &quot;Installed Version&quot;,
+			dependencies				= &quot;Dependencies&quot;,
+		},
+
+		repo		= {
+			successfullAddMessage	= &quot;Added new repository to database:&quot;,
+			addError					= &quot;Couldn't add repository to database. Reason:&quot;,
+			listHeader				= &quot;List of all known repositories:&quot;,
+			notFound					= &quot;No repositories matching the pattern '%s' found.&quot;,
+			removeSuccessful		= &quot;Successfully removed repository '%s'.&quot;,
+			updateStart				= &quot;Updating the list of available packages.&quot;,
+		},
+
+		package	= {
+			nameMismatch	= &quot;Package names don't match.&quot;,
+			listHeader	= &quot;List of all known packages:&quot;,
+			notFound		= &quot;No package matching the pattern '%s' found.&quot;,
+		},
+
+	}
+}</script>
+                <eventHandlerList/>
             </Script>
             <Script isActive="yes" isFolder="no">
                 <name>done loading</name>
