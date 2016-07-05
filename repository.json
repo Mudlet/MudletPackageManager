@@ -1,8 +1,10 @@
-{
-  "name": "MudletPackageManager",
-  "version": "0.0.1",
-  "url": "http://keneanung.gitlab.io/MudletPackageManager/MudletPackageManager.xml",
-  "description": "The Mudlet Package Manager",
-  "author": "Keneanung",
-  "extension": "xml"
-}
+[
+  {
+    "name": "MudletPackageManager",
+    "version": "0.0.1",
+    "url": "http://keneanung.gitlab.io/MudletPackageManager/MudletPackageManager.xml",
+    "description": "The Mudlet Package Manager",
+    "author": "Keneanung",
+    "extension": "xml"
+  }
+]
