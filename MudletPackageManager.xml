@@ -2249,7 +2249,7 @@ mpkg.functions = {
 		local fetchByExample		= functions.fetchByExample
 		local bestCandidate		= functions.bestCandidate
 
-		local dependencies = fetchByExample(dependencyTable, { name = name, repository = repositoy })
+		local dependencies = fetchByExample(dependencyTable, { name = name, repository = repository })
 
 		for _, dep in ipairs(dependencies) do
 			local installedDependency = fetchByExample(packageTable, { name = dep.dependency, installed = &quot;!=&quot; })
