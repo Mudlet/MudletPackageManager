@@ -2139,6 +2139,7 @@ function mpkg.finishedDownload(event, file)
 		mpkg.transaction.argument[1].name == fileNameExt
 	then
 
+		uninstallPackage(fileName)
 		installPackage(file)
 
 		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName, url = mpkg.transaction.argument[1].url}))[1]
