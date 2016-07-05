@@ -1,0 +1,10 @@
+pages:
+  script:
+    - mkdir -p public
+    - cp repository.json public/repository.json
+    - cp MudletPackageManager.xml public/MudletPackageManager.xml
+  artifacts:
+    paths:
+    - public
+  only:
+  - master
