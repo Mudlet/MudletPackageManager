@@ -1964,119 +1964,6 @@ mpkg.config = {
                 <eventHandlerList/>
             </Script>
             <Script isActive="yes" isFolder="no">
-                <name>mpkg.finishedDownload</name>
-                <packageName></packageName>
-                <script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external Scripts --
--------------------------------------------------
-function mpkg.finishedDownload(event, file)
-
-	local fileName = file:match(&quot;.+/(%w+)&quot;)
-	local fileNameExt = file:match(&quot;.+/(.-)$&quot;)
-	if mpkg.transaction.type == &quot;update&quot; and
-		not table.is_empty(db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, {name = fileName})))
-	then
-
-		local filePointer = io.open(file, &quot;r&quot;)
-		local str = filePointer:read(&quot;*all&quot;)
-		local packages = yajl.to_value(str)
-
-		db:delete(mpkg.database.packages, db:AND(db:eq(mpkg.database.packages.repository, fileName), db:eq(mpkg.database.packages.installed, &quot;&quot;)))
-
-		for _, currentPackage in ipairs(packages) do
-
-			local knownPackage = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = currentPackage.name, repository = fileName}))[1]
-
-			if knownPackage then
-				knownPackage.version = currentPackage.version
-				knownPackage.url = currentPackage.url
-				knownPackage.description = currentPackage.description
-				knownPackage.extension = currentPackage.extension
-				db:update(mpkg.database.packages, knownPackage)
-			else
-				local ret, error = db:add(mpkg.database.packages, { name = currentPackage.name,
-						url = currentPackage.url,
-						version = currentPackage.version,
-						repository = fileName,
-						description = currentPackage.description,
-						extension = currentPackage.extension })
-				if not ret then
-					cecho(&quot;&lt;red&gt;Could not add new package. Reason: &quot; .. error .. &quot;\n&quot;)
-				end
-			end
-
-			db:delete(mpkg.database.dependencies, db:query_by_example(mpkg.database.dependencies, {name = currentPackage.name, repository = fileName}))
-			currentPackage.dependencies = currentPackage.dependencies or {}
-
-			for _, dependency in ipairs(currentPackage.dependencies) do
-				db:add(mpkg.database.dependencies, { 
-					name = currentPackage.name,
-					dependency = dependency.name,
-					repository = fileName })
-			end
-
-		end
-
-		cecho(&quot;&lt;green&gt;Package list of repository &quot; .. fileName .. &quot; updated.\n&quot;)
-		mpkg.transaction.argument = mpkg.transaction.argument - 1
-		if mpkg.transaction.argument == 0 then
-			cecho(&quot;&lt;green&gt;Finished updating package list.\n&quot;)
-			mpkg.transaction.type = nil
-		else
-			cecho(&quot;&lt;green&gt;Waiting for &quot; .. mpkg.transaction.argument .. &quot; more repository updates to finish.\n&quot;)
-		end
-
-	elseif mpkg.transaction.type == &quot;install&quot; and
-		mpkg.transaction.argument[1].name == fileNameExt
-	then
-		uninstallPackage(fileName)
-		installPackage(file)
-
-		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName, url = mpkg.transaction.argument[1].url}))[1]
-
-		package.installed = package.version
-		db:update(mpkg.database.packages, package)
-
-		table.remove(mpkg.transaction.argument, 1)
-		if table.is_empty(mpkg.transaction.argument) then
-			cecho(&quot;&lt;green&gt;Finished installing package &quot; .. fileName .. &quot;.\n&quot;)
-			mpkg.transaction.type = nil
-		else
-			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
-			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
-		end
-
-	elseif mpkg.transaction.type == &quot;upgrade&quot; and
-		mpkg.transaction.argument[1].name == fileNameExt
-	then
-
-		uninstallPackage(fileName)
-		installPackage(file)
-
-		local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName, url = mpkg.transaction.argument[1].url}))[1]
-
-		package.installed = package.version
-		db:update(mpkg.database.packages, package)
-
-		table.remove(mpkg.transaction.argument, 1)
-		cecho(&quot;&lt;green&gt;Finished installing package &quot; .. fileName .. &quot;.\n&quot;)
-		if table.is_empty(mpkg.transaction.argument) then
-			cecho(&quot;&lt;green&gt;All downloads finished.&lt;reset&gt;\n&quot;)
-			mpkg.transaction.type = nil
-		else
-			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
-			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
-		end
-	end
-
-end</script>
-                <eventHandlerList>
-                    <string>sysDownloadDone</string>
-                </eventHandlerList>
-            </Script>
-            <Script isActive="yes" isFolder="no">
                 <name>mpkg.failedDownload</name>
                 <packageName></packageName>
                 <script>-------------------------------------------------
@@ -2512,6 +2399,94 @@ mpkg.functions = {
 		end
 
 	end,
+
+	finishedDownload = function(event, file)
+
+		local errorTemplate	= mpkg.templates.errorTemplate
+		local infoTemplate		= mpkg.templates.infoTemplate
+
+		local localized		= mpkg.localization[mpkg.config.locale]
+		local locRepo		= localized.repo
+		local locPackage	= localized.package
+
+		local fileName = file:match(&quot;.+/(%w+)&quot;)
+		local fileNameExt = file:match(&quot;.+/(.-)$&quot;)
+		if mpkg.transaction.type == &quot;update&quot; and
+			not table.is_empty(db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, {name = fileName})))
+		then
+
+			local filePointer = io.open(file, &quot;r&quot;)
+			local str = filePointer:read(&quot;*all&quot;)
+			local packages = yajl.to_value(str)
+
+			db:delete(mpkg.database.packages, db:AND(db:eq(mpkg.database.packages.repository, fileName), db:eq(mpkg.database.packages.installed, &quot;&quot;)))
+
+			for _, currentPackage in ipairs(packages) do
+
+				local knownPackage = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = currentPackage.name, repository = fileName}))[1]
+
+				if knownPackage then
+					knownPackage.version = currentPackage.version
+					knownPackage.url = currentPackage.url
+					knownPackage.description = currentPackage.description
+					knownPackage.extension = currentPackage.extension
+					db:update(mpkg.database.packages, knownPackage)
+				else
+					local ret, error = db:add(mpkg.database.packages, { name = currentPackage.name,
+							url = currentPackage.url,
+							version = currentPackage.version,
+							repository = fileName,
+							description = currentPackage.description,
+							extension = currentPackage.extension })
+					if not ret then
+						cecho(errorTemplate:format(locRepo.addNewPackageFailed))
+						cecho(error)
+					end
+				end
+
+				db:delete(mpkg.database.dependencies, db:query_by_example(mpkg.database.dependencies, {name = currentPackage.name, repository = fileName}))
+				currentPackage.dependencies = currentPackage.dependencies or {}
+
+				for _, dependency in ipairs(currentPackage.dependencies) do
+					db:add(mpkg.database.dependencies, { 
+						name = currentPackage.name,
+						dependency = dependency.name,
+						repository = fileName })
+				end
+
+			end
+
+			cecho(infoTemplate:format(locRepo.updateFinishedRepo:format(fileName)))
+			mpkg.transaction.argument = mpkg.transaction.argument - 1
+			if mpkg.transaction.argument == 0 then
+				cecho(infoTemplate:format(locRepo.updateFinishedAll))
+				mpkg.transaction.type = nil
+			else
+				cecho(infoTemplate:format(locRepo.updateProgress:format(mpkg.transaction.argument)))
+			end
+
+		elseif (mpkg.transaction.type == &quot;install&quot; or mpkg.transaction.type == &quot;upgrade&quot;) and
+			mpkg.transaction.argument[1].name == fileNameExt
+		then
+			uninstallPackage(fileName)
+			installPackage(file)
+
+			local package = db:fetch(mpkg.database.packages, db:query_by_example(mpkg.database.packages, {name = fileName, url = mpkg.transaction.argument[1].url}))[1]
+
+			package.installed = package.version
+			db:update(mpkg.database.packages, package)
+
+			table.remove(mpkg.transaction.argument, 1)
+				cecho(infoTemplate:format(locPackage.finishedInstalling:format(fileName)))
+			if table.is_empty(mpkg.transaction.argument) then
+				cecho(infoTemplate:format(locPackage.finishedInstallingAll))
+				mpkg.transaction.type = nil
+			else
+				cecho(infoTemplate:format(locPackage.installProgress:format(#mpkg.transaction.argument)))
+				downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
+			end
+		end
+	end,
 }</script>
                 <eventHandlerList/>
             </Script>
@@ -2642,6 +2617,10 @@ mpkg.localization = {
 			notFound					= &quot;No repositories matching the pattern '%s' found.&quot;,
 			removeSuccessful		= &quot;Successfully removed repository '%s'.&quot;,
 			updateStart				= &quot;Updating the list of available packages.&quot;,
+			addnewPackageFailed	= &quot;Could not add new package information to database. Reason:&quot;,
+			updateFinishedRepo		= &quot;Package list of repository '%s' updated.&quot;,
+			updateFinishedAll		= &quot;Finished updating package list.&quot;,
+			updateProgress			= &quot;Waiting for %s more repository updates to finish.&quot;,
 		},
 
 		package	= {
@@ -2653,7 +2632,10 @@ mpkg.localization = {
 			notInstalled				= &quot;A package matching '%s' is not installed.&quot;,
 			multipleFound			= &quot;Multiple packages matching the pattern '%s' found. Please be more specific, which package you want to uninstall.&quot;,
 			finishedUninstalling	= &quot;Finished uninstalling package '%s'.&quot;,
-			upgradeStaged			= &quot;Staging package '%s' for upgrade to version '%s'.&quot;	
+			upgradeStaged			= &quot;Staging package '%s' for upgrade to version '%s'.&quot;	,
+			finishedInstalling		= &quot;Finished installing package '%s'.&quot;,
+			finishedInstallingAll	= &quot;Finished installing all packages.&quot;,
+			installProgress			= &quot;%s more packages to install.&quot;,
 		},
 
 	}
@@ -2668,6 +2650,7 @@ mpkg.localization = {
 --                                             --
 -- Note that you can also use external Scripts --
 -------------------------------------------------
+registerAnonymousEventHandler(&quot;sysDownloadDone&quot;, &quot;mpkg.functions.finishedDownload&quot;)
 raiseEvent(&quot;mpkg done loading&quot;)</script>
                 <eventHandlerList/>
             </Script>
