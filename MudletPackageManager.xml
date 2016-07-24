@@ -1964,64 +1964,6 @@ mpkg.config = {
                 <eventHandlerList/>
             </Script>
             <Script isActive="yes" isFolder="no">
-                <name>mpkg.failedDownload</name>
-                <packageName></packageName>
-                <script>-------------------------------------------------
---         Put your Lua functions here.        --
---                                             --
--- Note that you can also use external Scripts --
--------------------------------------------------
-
-function mpkg.failedDownload(event, message, file)
-	local fileName = file:match(&quot;.+/(.-)$&quot;)
-	if mpkg.transaction.type == &quot;update&quot; and
-		not table.is_empty(db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, {name = fileName})))
-	then
-
-		cecho(&quot;&lt;red&gt;Package list of repository &quot; .. fileName .. &quot; could not be updated. Reason:\n&quot;)
-		echo(message .. &quot;\n&quot;)
-		mpkg.transaction.argument = mpkg.transaction.argument - 1
-		if mpkg.transaction.argument == 0 then
-			cecho(&quot;&lt;green&gt;Finished updating package list.\n&quot;)
-			mpkg.transaction.type = nil
-		else
-			cecho(&quot;&lt;green&gt;Waiting for &quot; .. mpkg.transaction.argument .. &quot; more repository updates to finish.\n&quot;)
-		end
-
-	elseif mpkg.transaction.type == &quot;install&quot; and
-		mpkg.transaction.argument[1].name == fileName
-	then
-		cecho(&quot;&lt;red&gt;Could not install package &quot; .. fileName .. &quot;. Reason:\n&quot;)
-		echo(message .. &quot;\n&quot;)
-		table.remove(mpkg.transaction.argument, 1)
-		if table.is_empty(mpkg.transaction.argument) then
-			cecho(&quot;&lt;red&gt;Failed to install package '&quot; .. fileName .. &quot;'.\n&quot;)
-			mpkg.transaction.type = nil
-		else
-			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
-			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
-		end
-
-	elseif mpkg.transaction.type == &quot;upgrade&quot; and
-		mpkg.transaction.argument[1].name == fileName
-	then
-		cecho(&quot;&lt;red&gt;Could not upgrade package &quot; .. fileName .. &quot;. Reason:\n&quot;)
-		echo(message .. &quot;\n&quot;)
-		table.remove(mpkg.transaction.argument, 1)
-		if table.is_empty(mpkg.transaction.argument) then
-			cecho(&quot;&lt;red&gt;Failed to upgrade package '&quot; .. fileName .. &quot;'.\n&quot;)
-			mpkg.transaction.type = nil
-		else
-			cecho(&quot;&lt;green&gt;&quot; .. #mpkg.transaction.argument .. &quot; more packages to install.\n&quot;)
-			downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
-		end
-	end
-end</script>
-                <eventHandlerList>
-                    <string>sysDownloadError</string>
-                </eventHandlerList>
-            </Script>
-            <Script isActive="yes" isFolder="no">
                 <name>functions</name>
                 <packageName></packageName>
                 <script>-------------------------------------------------
@@ -2487,6 +2429,47 @@ mpkg.functions = {
 			end
 		end
 	end,
+
+	failedDownload = function(event, message, file)
+
+		local templates			= mpkg.templates
+		local errorTemplate	= templates.errorTemplate
+		local infoTemplate		= templates.infoTemplate
+
+		local localized		= mpkg.localization[mpkg.config.locale]
+		local locRepo		= localized.repo
+		local locPackage	= localized.package
+
+		local fileName = file:match(&quot;.+/(.-)$&quot;)
+		if mpkg.transaction.type == &quot;update&quot; and
+			not table.is_empty(db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, {name = fileName})))
+		then
+
+			cecho(errorTemplate:format(locRepo.couldNotUpdate:format(fileName)))
+			cecho(message .. &quot;\n&quot;)
+			mpkg.transaction.argument = mpkg.transaction.argument - 1
+			if mpkg.transaction.argument == 0 then
+				cecho(infoTemplate:format(locRepo.updateFinishedAll))
+				mpkg.transaction.type = nil
+			else
+				cecho(infoTemplate:format(locRepo.updateProgress:format(mpkg.transaction.argument)))
+			end
+
+		elseif (mpkg.transaction.type == &quot;install&quot; or mpkg.transaction.type == &quot;upgrade&quot;) and
+			mpkg.transaction.argument[1].name == fileName
+		then
+			cecho(errorTemplate:format(locPackage.couldNotInstall:format(fileName)))
+			cecho(message .. &quot;\n&quot;)
+			table.remove(mpkg.transaction.argument, 1)
+			if table.is_empty(mpkg.transaction.argument) then
+				cecho(errorTemplate:format(locPackage.finishedInstallingAll:format()))
+				mpkg.transaction.type = nil
+			else
+				cecho(infoTemplate:format(locPackage.installProgress:format(#mpkg.transaction.argument)))
+				downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
+			end
+		end
+	end,
 }</script>
                 <eventHandlerList/>
             </Script>
@@ -2621,6 +2604,7 @@ mpkg.localization = {
 			updateFinishedRepo		= &quot;Package list of repository '%s' updated.&quot;,
 			updateFinishedAll		= &quot;Finished updating package list.&quot;,
 			updateProgress			= &quot;Waiting for %s more repository updates to finish.&quot;,
+			couldNotUpdate			= &quot;Package list of repository '%s' could not be updated. Reason:&quot;,
 		},
 
 		package	= {
@@ -2636,6 +2620,7 @@ mpkg.localization = {
 			finishedInstalling		= &quot;Finished installing package '%s'.&quot;,
 			finishedInstallingAll	= &quot;Finished installing all packages.&quot;,
 			installProgress			= &quot;%s more packages to install.&quot;,
+			couldNotInstall			= &quot;Could not install package '%s'. Reason:&quot;
 		},
 
 	}
@@ -2651,6 +2636,7 @@ mpkg.localization = {
 -- Note that you can also use external Scripts --
 -------------------------------------------------
 registerAnonymousEventHandler(&quot;sysDownloadDone&quot;, &quot;mpkg.functions.finishedDownload&quot;)
+registerAnonymousEventHandler(&quot;sysDownloadError&quot;, &quot;mpkg.function.failedDownload&quot;)
 raiseEvent(&quot;mpkg done loading&quot;)</script>
                 <eventHandlerList/>
             </Script>
