@@ -1,6 +1,6 @@
 pages:
   script:
-    - mkdir -p public
+    - mkdir -p public/dev/
     - git checkout master
     - cp repository.json public/repository.json
     - cp MudletPackageManager.xml public/MudletPackageManager.xml
