@@ -1,10 +1,15 @@
 pages:
   script:
     - mkdir -p public
+    - git checkout master
     - cp repository.json public/repository.json
     - cp MudletPackageManager.xml public/MudletPackageManager.xml
+    - git checkout dev
+    - cp repository.json public/dev/repository.json
+    - cp MudletPackageManager.xml public/dev/MudletPackageManager.xml
   artifacts:
     paths:
     - public
   only:
   - master
+  - dev
