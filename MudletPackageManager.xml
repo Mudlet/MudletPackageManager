@@ -1942,7 +1942,7 @@ mpkg.database = db:create(&quot;MudletPackageManager&quot;, {
 
 mpkg.transaction = mpkg.transaction or { }
 if db:aggregate(mpkg.database.packages.name, &quot;COUNT&quot;) == 0 then
-	db:add(mpkg.database.packages, {name = &quot;MudletPackageManager&quot;, version = &quot;0.0.1&quot;, installed = &quot;0.0.1&quot;, url = &quot;http://schova.de/mudlet-repository/MudletPackageManager.dat&quot;, author = &quot;Keneanung&quot;,
+	db:add(mpkg.database.packages, {name = &quot;MudletPackageManager&quot;, version = &quot;0.0.3&quot;, installed = &quot;0.0.3&quot;, url = &quot;http://keneanung.gitlab.io/MudletPackageManager/MudletPackageManager.xml&quot;, author = &quot;Keneanung&quot;,
 			description = &quot;The Mudlet Package Manager&quot;, repository = &quot;MudletPackageManager&quot;, extension = &quot;xml&quot; } )
 	db:add(mpkg.database.repositories, {name = &quot;MudletPackageManager&quot;, url = &quot;http://keneanung.gitlab.io/MudletPackageManager/repository.json&quot;,
 			description = &quot;The bootstrap repository for the mudlet package manager.&quot; } )
@@ -2525,7 +2525,7 @@ mpkg.localization = {
 				},
 				{
 					command     = &quot;mpkg repo add \&lt;name\&gt; \&lt;URL\&gt; \&lt;Description\&gt;&quot;,
-					description = {&quot;Adds a new repository with name, URL annd description to the database of known repositories.&quot;}
+					description = {&quot;Adds a new repository with name, URL and description to the database of known repositories.&quot;}
 				},
 				{
 					command     = &quot;mpkg repo list&quot;,
@@ -2534,7 +2534,7 @@ mpkg.localization = {
 				{
 					command     = &quot;mpkg repo info \&lt;pattern\&gt;&quot;,
 					description = {
-						&quot;Show the URL and description of the repositories matching the pattern.&quot;,
+						&quot;Shows the URL and description of the repositories matching the pattern.&quot;,
 						&quot;The pattern may contain '_' as single character wildcard and '%' for multiple characters.&quot;
 					},
 				},
@@ -2556,21 +2556,21 @@ mpkg.localization = {
 				{
 					command     = &quot;mpkg package info \&lt;pattern\&gt;&quot;,
 					description = {
-						&quot;Show the URL, version, repository name and description of the packages matching the pattern.&quot;,
+						&quot;Shows the URL, version, repository name and description of the packages matching the pattern.&quot;,
 						&quot;The pattern may contain '_' as single character wildcard and '%' for multiple characters.&quot;
 					},
 				},
 				{
 					command     = &quot;mpkg install \&lt;name\&gt;&quot;,
-					description = {&quot;Install the package. This will always install the latest version of the package with that name found.&quot;}
+					description = {&quot;Installs the package. This will always install the latest version of the package with that name found.&quot;}
 				},
 				{
 					command     = &quot;mpkg uninstall \&lt;name\&gt;&quot;,
-					description = {&quot;Uninstall the package.&quot;}
+					description = {&quot;Uninstalls the package.&quot;}
 				},
 				{
 					command     = &quot;mpkg upgrade&quot;,
-					description = {&quot;Download and install the latest version of all installed packages.&quot;}
+					description = {&quot;Downloads and installs the latest version of all installed packages.&quot;}
 				},
 			},
 
