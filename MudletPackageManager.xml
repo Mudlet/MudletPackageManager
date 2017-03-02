@@ -2117,7 +2117,7 @@ mpkg.database = db:create(&quot;MudletPackageManager&quot;, {
 
 mpkg.transaction = { }
 if db:aggregate(mpkg.database.packages.name, &quot;COUNT&quot;) == 0 then
-	db:add(mpkg.database.packages, {name = &quot;MudletPackageManager&quot;, version = &quot;0.0.2&quot;, installed = &quot;0.0.2&quot;, url = &quot;http://keneanung.gitlab.io/MudletPackageManager/MudletPackageManager.xml&quot;, author = &quot;Keneanung&quot;,
+	db:add(mpkg.database.packages, {name = &quot;MudletPackageManager&quot;, version = &quot;0.0.3&quot;, installed = &quot;0.0.3&quot;, url = &quot;http://keneanung.gitlab.io/MudletPackageManager/MudletPackageManager.xml&quot;, author = &quot;Keneanung&quot;,
 			description = &quot;The Mudlet Package Manager&quot;, repository = &quot;MudletPackageManager&quot;, extension = &quot;xml&quot; } )
 	db:add(mpkg.database.repositories, {name = &quot;MudletPackageManager&quot;, url = &quot;http://keneanung.gitlab.io/MudletPackageManager/repository.json&quot;,
 			description = &quot;The Base repository.&quot; } )
