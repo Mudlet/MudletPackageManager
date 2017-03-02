@@ -250,7 +250,7 @@ for _, package in ipairs(packages) do
 		end
 
 		if not mpkg.transaction.type then
-			cecho(&quot;&lt;green&gt;Staging package &quot; .. package.name .. &quot;for upgrade to version &quot; .. package.version .. &quot;.\n&quot;)
+			cecho(&quot;&lt;green&gt;Staging package &quot; .. package.name .. &quot; for upgrade to version &quot; .. package.version .. &quot;.\n&quot;)
 			mpkg.transaction.type = &quot;upgrade&quot;
 			mpkg.transaction.argument = {}
 			mpkg.transaction.argument[#mpkg.transaction.argument+1] = { name = package.name, url = package.url }
