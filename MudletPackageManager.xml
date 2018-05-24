@@ -2428,6 +2428,7 @@ mpkg.functions = {
 				downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
 			end
 		end
+		return true
 	end,
 
 	failedDownload = function(event, message, file)
@@ -2467,6 +2468,20 @@ mpkg.functions = {
 			else
 				cecho(infoTemplate:format(locPackage.installProgress:format(#mpkg.transaction.argument)))
 				downloadFile(getMudletHomeDir() .. &quot;/mpkg/cache/&quot; .. mpkg.transaction.argument[1].name, mpkg.transaction.argument[1].url)
+			end
+		end
+		return true
+	end,
+	
+	tryCatch = function(fun)
+		local errorTemplate = mpkg.templates.errorTemplate
+		local locPackage = mpkg.localization[mpkg.config.locale].package
+	  return function(...)
+	    local ret, message = pcall(fun, ...)
+			if not ret then
+			  cecho(errorTemplate:format(locPackage.couldNotInstall:format(mpkg.transaction.argument[1].name)))
+				cecho(errorTemplate:format(message))
+				mpkg.transaction = {}
 			end
 		end
 	end,
@@ -2635,8 +2650,8 @@ mpkg.localization = {
 --                                             --
 -- Note that you can also use external Scripts --
 -------------------------------------------------
-registerAnonymousEventHandler(&quot;sysDownloadDone&quot;, &quot;mpkg.functions.finishedDownload&quot;)
-registerAnonymousEventHandler(&quot;sysDownloadError&quot;, &quot;mpkg.function.failedDownload&quot;)
+registerAnonymousEventHandler(&quot;sysDownloadDone&quot;, &quot;mpkg.functions.tryCatch(mpkg.functions.finishedDownload)&quot;)
+registerAnonymousEventHandler(&quot;sysDownloadError&quot;, &quot;mpkg.functions.tryCatch(mpkg.function.failedDownload)&quot;)
 raiseEvent(&quot;mpkg done loading&quot;)</script>
                 <eventHandlerList/>
             </Script>
