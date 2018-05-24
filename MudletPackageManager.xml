@@ -2049,7 +2049,7 @@ mpkg.functions = {
 	greaterVersion = function(baseVersion, newVersion)
 		local base = baseVersion:split(&quot;%.&quot;)
 		local new = newVersion:split(&quot;%.&quot;)
-		if tonumber(base[1]) &lt; tonumber(new[1]) or tonumber(base[2]) &lt; tonumber(new[2]) or tonumber(base[3]) &lt; tonumber(new[3]) then
+		if tonumber(base[1] or 0) &lt; tonumber(new[1] or 0) or tonumber(base[2] or 0) &lt; tonumber(new[2] or 0) or tonumber(base[3] or 0) &lt; tonumber(new[3] or 0) then
 			return true
 		end
 		return false
