@@ -2651,7 +2651,7 @@ mpkg.localization = {
 -- Note that you can also use external Scripts --
 -------------------------------------------------
 registerAnonymousEventHandler(&quot;sysDownloadDone&quot;, &quot;mpkg.functions.tryCatch(mpkg.functions.finishedDownload)&quot;)
-registerAnonymousEventHandler(&quot;sysDownloadError&quot;, &quot;mpkg.functions.tryCatch(mpkg.function.failedDownload)&quot;)
+registerAnonymousEventHandler(&quot;sysDownloadError&quot;, &quot;mpkg.functions.tryCatch(mpkg.functions.failedDownload)&quot;)
 raiseEvent(&quot;mpkg done loading&quot;)</script>
                 <eventHandlerList/>
             </Script>
