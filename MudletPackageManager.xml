@@ -1928,6 +1928,7 @@ mpkg.database = db:create(&quot;MudletPackageManager&quot;, {
 		url = &quot;&quot;,
 		description = &quot;&quot;,
 		author = &quot;&quot;,
+    		updated_on = &quot;&quot;,
 		repository = &quot;&quot;,
 		extension = &quot;&quot;,
 		_index = { &quot;name&quot; }
@@ -2066,7 +2067,7 @@ mpkg.functions = {
 			cecho(header:format(headerEntry))
 		end
 		for _, helpEntry in ipairs(help.entries) do
-			cecho(command:format(helpEntry.command))
+			cechoLink(command:format(helpEntry.command), helpEntry.action, helpEntry.command, true)
 			for _, descriptionLine in ipairs(helpEntry.description) do
 				cecho(description:format(descriptionLine))
 			end
@@ -2185,13 +2186,22 @@ mpkg.functions = {
 		local packageListTemplate	=templates.packageListTemplate
 		local localized					= mpkg.localization[mpkg.config.locale]
 		local locInstalled				= localized.general.installed
+		local locInstall          = localized.general.install
+		local locUninstall        = localized.general.uninstall
+    		local locUpgradable       = localized.general.upgradable
 
 		local packageList = db:fetch(mpkg.database.packages)
 		cecho(templates.headerTemplate:format(localized.package.listHeader))
 		for _, package in ipairs(packageList) do
-			cecho(packageListTemplate:format(package.name, package.version, 
-					package.repository, package.installed ~= &quot;&quot; and locInstalled or &quot;&quot;))
+			cechoLink(packageListTemplate:format(package.name, package.installed ~= &quot;&quot; and package.installed or package.version, 
+			package.repository, package.installed ~= &quot;&quot; and locInstalled or &quot;&quot;), 
+			package.installed ~= &quot;&quot; and &quot;mpkg.functions.uninstall('&quot;..package.name..&quot;')&quot; or &quot;mpkg.functions.install('&quot;..package.name..&quot;')&quot;, 
+			package.installed ~= &quot;&quot; and locUninstall or locInstall, true)
+			cechoLink(package.installed ~= &quot;&quot; and mpkg.functions.greaterVersion(package.installed, package.version) and 
+			templates.upgradableTemplate:format(locUpgradable:format(package.version)) or &quot;\n&quot;, 
+			&quot;mpkg.functions.upgrade()&quot;, &quot;mpkg upgrade&quot;, true)
 		end
+    		echo(&quot;\n&quot;)
 	end,
 
 	packageInfo = function(name)
@@ -2213,7 +2223,9 @@ mpkg.functions = {
 				cecho(propertyLine:format(locGeneral.repository, pkg.repository))
 				cecho(propertyLine:format(locGeneral.version, pkg.version))
 				cecho(propertyLine:format(locGeneral.installedVersion , pkg.installed ~= &quot;&quot; and pkg.installed or locGeneral.none))
+				cecho(propertyLine:format(locGeneral.author, pkg.author))
 				cecho(propertyLine:format(locGeneral.description, pkg.description))
+				cecho(propertyLine:format(locGeneral.updated_on, pkg.updated_on))
 				local dependencyString = &quot;&quot;
 				for num, dep in ipairs(dependencies) do
 					dependencyString = dependencyString .. (num &gt; 1 and &quot;, &quot; or &quot;&quot;) .. dep.dependency
@@ -2370,6 +2382,8 @@ mpkg.functions = {
 				if knownPackage then
 					knownPackage.version = currentPackage.version
 					knownPackage.url = currentPackage.url
+					knownPackage.author = currentPackage.author
+					knownPackage.updated_on = currentPackage.updated_on
 					knownPackage.description = currentPackage.description
 					knownPackage.extension = currentPackage.extension
 					db:update(mpkg.database.packages, knownPackage)
@@ -2377,6 +2391,8 @@ mpkg.functions = {
 					local ret, error = db:add(mpkg.database.packages, { name = currentPackage.name,
 							url = currentPackage.url,
 							version = currentPackage.version,
+							author = currentPackage.author,
+							updated_on = currentPackage.updated_on,
 							repository = fileName,
 							description = currentPackage.description,
 							extension = currentPackage.extension })
@@ -2503,13 +2519,14 @@ mpkg.templates = {
 																													--property, second its value
 
 	commandHelpTemplate			= &quot;  &lt;orange&gt;%s&lt;reset&gt;\n&quot;,											--help template for commands
+  	upgradableTemplate			= &quot;  &lt;red&gt;(%s)&lt;reset&gt;\n&quot;,											--help template for upgradable
 	helpDescriptionTemplate		= &quot;    %s\n&quot;,															--help template for the descriptions
 																													--of a command
 
 	errorTemplate					= &quot;&lt;red&gt;%s&lt;reset&gt;\n&quot;,													--template for error messages
 	warningTemplate					= &quot;&lt;orange&gt;%s&lt;reset&gt;\n&quot;,												--template for warnings
 	infoTemplate						= &quot;&lt;green&gt;%s&lt;reset&gt;\n&quot;,												--template for informational output
-	packageListTemplate			= &quot;  &lt;orange&gt;%s (%s) &lt;reset&gt;from %s &lt;green&gt;%s&lt;reset&gt;\n&quot;,		--template for a line in the package
+	packageListTemplate			= &quot;  &lt;orange&gt;%s (%s) &lt;reset&gt;from %s &lt;green&gt;%s&lt;reset&gt;&quot;,		--template for a line in the package
 																													--list
 }</script>
                 <eventHandlerList/>
@@ -2536,56 +2553,67 @@ mpkg.localization = {
 
 				{ 
 					command     = &quot;mpkg help&quot;,
-					description = {&quot;Displays this help text.&quot;}
+					description = {&quot;Displays this help text.&quot;},
+					action      =  &quot;mpkg.functions.printHelp()&quot;
 				},
 				{
 					command     = &quot;mpkg repo add \&lt;name\&gt; \&lt;URL\&gt; \&lt;Description\&gt;&quot;,
-					description = {&quot;Adds a new repository with name, URL and description to the database of known repositories.&quot;}
+          				description = {&quot;Adds a new repository with name, URL and description to the database of known repositories.&quot;},
+          				action      =  &quot;printCmdLine('mpkg repo add')&quot;
 				},
 				{
 					command     = &quot;mpkg repo list&quot;,
-					description = {&quot;Lists all known repositories.&quot;}
+          				description = {&quot;Lists all known repositories.&quot;},
+          				action      =  &quot;mpkg.functions.listRepos()&quot;
 				},
 				{
 					command     = &quot;mpkg repo info \&lt;pattern\&gt;&quot;,
 					description = {
 						&quot;Shows the URL and description of the repositories matching the pattern.&quot;,
 						&quot;The pattern may contain '_' as single character wildcard and '%' for multiple characters.&quot;
-					},
+                    },
+          action      =  &quot;printCmdLine('mpkg repo info')&quot;
 				},
 				{
 					command     = &quot;mpkg repo remove \&lt;pattern\&gt;&quot;,
 					description = {
 						&quot;Removes the matching repositories from the database.&quot;,
 						&quot;The pattern may contain '_' as single character wildcard and '%' for multiple characters.&quot;
-					},
+                    },
+					action      =  &quot;printCmdLine('mpkg repo remove')&quot;
 				},
 				{
 					command     = &quot;mpkg update&quot;,
-					description = {&quot;Updates the list of available packages on all repositories.&quot;}
+					description = {&quot;Updates the list of available packages on all repositories.&quot;},
+					action      =  &quot;mpkg.functions.update()&quot;
 				},
 				{
 					command     = &quot;mpkg package list&quot;,
-					description = {&quot;Lists all known packages.&quot;}
+					description = {&quot;Lists all known packages.&quot;},
+					action      =  &quot;mpkg.functions.packageList()&quot;
 				},
 				{
 					command     = &quot;mpkg package info \&lt;pattern\&gt;&quot;,
 					description = {
 						&quot;Shows the URL, version, repository name and description of the packages matching the pattern.&quot;,
 						&quot;The pattern may contain '_' as single character wildcard and '%' for multiple characters.&quot;
-					},
+                    },
+		  			action      =  &quot;printCmdLine('mpkg package info')&quot;
 				},
 				{
 					command     = &quot;mpkg install \&lt;name\&gt;&quot;,
-					description = {&quot;Installs the package. This will always install the latest version of the package with that name found.&quot;}
+					description = {&quot;Installs the package. This will always install the latest version of the package with that name found.&quot;},
+					action      =  &quot;printCmdLine('mpkg install')&quot;
 				},
 				{
 					command     = &quot;mpkg uninstall \&lt;name\&gt;&quot;,
-					description = {&quot;Uninstalls the package.&quot;}
+					description = {&quot;Uninstalls the package.&quot;},
+					action      =  &quot;printCmdLine('mpkg uninstall')&quot;
 				},
 				{
 					command     = &quot;mpkg upgrade&quot;,
-					description = {&quot;Downloads and installs the latest version of all installed packages.&quot;}
+					description = {&quot;Downloads and installs the latest version of all installed packages.&quot;},
+					action      =  &quot;mpkg.functions.upgrade()&quot;
 				},
 			},
 
@@ -2600,12 +2628,17 @@ mpkg.localization = {
 			cacheCreationFailed	= &quot;Unable to create cache directory:&quot;,
 			alreadyProcessing		= &quot;There is currently an %s in progress. Please wait for it to finish and try again.&quot;,
 			installed					= &quot;installed&quot;,
+			upgradable        = &quot;upgradable to version %s&quot;,
+			install         = &quot;Install Package&quot;,
+			uninstall       = &quot;Uninstall Package&quot;,
 			none						= &quot;none&quot;,
 			despendencies			= &quot;Dependencies&quot;,
 			repository				= &quot;Repository&quot;,
 			version					= &quot;Version&quot;,
 			installedVersion		= &quot;Installed Version&quot;,
 			dependencies				= &quot;Dependencies&quot;,
+			author              = &quot;Author&quot;,
+			updated_on          = &quot;Updated on&quot;
 		},
 
 		repo		= {
