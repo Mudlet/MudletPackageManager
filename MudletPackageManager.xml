@@ -2351,7 +2351,7 @@ mpkg.functions = {
 		local locRepo		= localized.repo
 		local locPackage	= localized.package
 
-		local fileName = file:match(&quot;.+/([%w-.]+)%.%w+$&quot;)
+		local fileName = file:match(&quot;.+/([%w-.]+)%.%w+$&quot;) or file:match(&quot;.+/([%w-.]+)$&quot;)
 		local fileNameExt = file:match(&quot;.+/(.-)$&quot;)
 		if mpkg.transaction.type == &quot;update&quot; and
 			not table.is_empty(db:fetch(mpkg.database.repositories, db:query_by_example(mpkg.database.repositories, {name = fileName})))
