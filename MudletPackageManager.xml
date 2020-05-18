@@ -2414,12 +2414,11 @@ mpkg.functions = {
 				end
 
 				db:delete(mpkg.database.dependencies, db:query_by_example(mpkg.database.dependencies, {name = currentPackage.name, repository = fileName}))
-				currentPackage.dependencies = currentPackage.dependencies or {}
-
+				currentPackage.dependencies = currentPackage.dependencies and string.split(string.gsub(currentPackage.dependencies,"%s",""),",") or {}
 				for _, dependency in ipairs(currentPackage.dependencies) do
 					db:add(mpkg.database.dependencies, { 
 						name = currentPackage.name,
-						dependency = dependency.name,
+						dependency = dependency,
 						repository = fileName })
 				end
 
