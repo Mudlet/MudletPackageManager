@@ -1,3 +1,8 @@
+# Archived
+This repository has been archived in favour of https://github.com/Mudlet/mudlet-package-repository, which is a simpler and a more straightforward setup.
+
+Old README below:
+
 MudletPackageManager
 ====================
 
